@@ -1,0 +1,6 @@
+{
+  "name": "AVDP Sierra Leone Dashboard",
+  "description": "Full-stack real-time regional agricultural indicators monitoring, interactive geodata district mapping, decision-support advisor, threshold emailing triggers, and bandwidth-efficient offline visual caches.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
