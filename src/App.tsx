@@ -16,6 +16,7 @@ import MarketInformation from "./components/MarketInformation";
 import CropCalendar from "./components/CropCalendar";
 import ProactiveInsights from "./components/ProactiveInsights";
 import GenderAnalytics from "./components/GenderAnalytics";
+import ReportsPanel from "./components/ReportsPanel";
 import { 
   Building2, Globe, Shield, RefreshCw, Radio, HardDrive, 
   Wifi, WifiOff, FileSpreadsheet, Layers, Bell, Bot, History,
@@ -511,6 +512,9 @@ export default function App() {
 
             {/* Gender & youth inclusion analytics (survey disaggregation) */}
             <GenderAnalytics selectedDistrict={selectedDistrict} isLowBandwidth={isLowBandwidth} />
+
+            {/* Scheduled national M&E digest reports */}
+            <ReportsPanel currentUser={currentUser} />
 
             {/* Subscription threshold rules + Automated email notifications mock simulator */}
             <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">

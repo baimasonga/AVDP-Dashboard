@@ -375,6 +375,37 @@ export async function submitSurveyResponse(
   }
 }
 
+// ---------- reports (scheduled M&E digests) ----------
+export interface MEReport {
+  id: number;
+  generatedAt: string;
+  title: string;
+  summary: any;
+  markdown: string;
+}
+
+export async function getReports(): Promise<MEReport[]> {
+  const { data, error } = await supabase
+    .from("reports")
+    .select("*")
+    .order("generated_at", { ascending: false })
+    .limit(30);
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((r: any) => ({
+    id: r.id,
+    generatedAt: r.generated_at,
+    title: r.title,
+    summary: r.summary,
+    markdown: r.markdown,
+  }));
+}
+
+export async function generateReportNow(user: User | null): Promise<void> {
+  const { error } = await supabase.rpc("generate_report_admin");
+  if (error) throw new Error(error.message);
+  await logActivity("Generated national M&E digest report", user);
+}
+
 export async function createSurvey(
   payload: {
     title: string;
