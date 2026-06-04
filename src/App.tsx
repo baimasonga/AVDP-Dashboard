@@ -44,7 +44,13 @@ export default function App() {
 
   const [loading, setLoading] = useState<boolean>(true);
   const [syncingIndicator, setSyncingIndicator] = useState<boolean>(false);
-  const [activeTab, setActiveTab] = useState<"analytics" | "markets" | "calendar">("analytics");
+
+  // Initialize tab + district from the URL so views are shareable/deep-linkable
+  const initialParams = new URLSearchParams(window.location.search);
+  const initialTab = initialParams.get("tab");
+  const [activeTab, setActiveTab] = useState<"analytics" | "markets" | "calendar">(
+    initialTab === "markets" || initialTab === "calendar" ? initialTab : "analytics"
+  );
 
   // --- COMPREHENSIVE DATA SYNCHRONIZATION INTERFACE ---
 
@@ -95,6 +101,22 @@ export default function App() {
       authSub.subscription.unsubscribe();
     };
   }, []);
+
+  // Apply any ?district= from the URL on first load
+  useEffect(() => {
+    const d = initialParams.get("district");
+    if (d) setSelectedDistrict(d);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Keep the URL in sync with the active tab + selected district (shareable links)
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (activeTab !== "analytics") params.set("tab", activeTab);
+    if (selectedDistrict) params.set("district", selectedDistrict);
+    const qs = params.toString();
+    window.history.replaceState(null, "", qs ? `?${qs}` : window.location.pathname);
+  }, [activeTab, selectedDistrict]);
 
   // Pull the latest data from Supabase, caching it locally for offline use.
   const syncWithServer = async () => {

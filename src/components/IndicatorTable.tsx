@@ -1,10 +1,11 @@
 import React, { useState, useRef, useMemo } from "react";
 import { Indicator, User, UserRole } from "../types";
-import { 
-  Download, FileSpreadsheet, FileText, Search, ArrowUpDown, Edit3, 
-  Check, Trash, Plus, Upload, FileUp, AlertTriangle, CheckCircle2, ChevronRight, X 
+import {
+  Download, FileSpreadsheet, FileText, Search, ArrowUpDown, Edit3,
+  Check, Trash, Plus, Upload, FileUp, AlertTriangle, CheckCircle2, ChevronRight, X, History
 } from "lucide-react";
 import IndicatorSparkline from "./IndicatorSparkline";
+import IndicatorHistoryModal from "./IndicatorHistoryModal";
 
 interface IndicatorTableProps {
   indicators: Indicator[];
@@ -36,6 +37,9 @@ export default function IndicatorTable({
   // Pagination parameters
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = isLowBandwidth ? 8 : 12;
+
+  // History drill-down modal
+  const [historyItem, setHistoryItem] = useState<Indicator | null>(null);
 
   // Editing state handles
   const [editingItem, setEditingItem] = useState<Indicator | null>(null);
@@ -187,7 +191,7 @@ export default function IndicatorTable({
 
   // Client-Side CSV file writer downloader
   const handleExportCSV = () => {
-    const headers = ["IndicatorID", "IndicatorName", "BaselineValue", "AchievedValue", "ProgressPercentage", "Status", "District", "Commodity", "Timestamp"];
+    const headers = ["IndicatorID", "IndicatorName", "BaselineValue", "AchievedValue", "Target", "ProgressPercentage", "Status", "District", "Commodity", "Timestamp"];
     const csvRows = [headers.join(",")];
 
     filteredAndSortedIndicators.forEach(i => {
@@ -196,6 +200,7 @@ export default function IndicatorTable({
         `"${i.IndicatorName}"`,
         i.BaselineValue,
         i.AchievedValue,
+        i.Target ?? "",
         i.Progress,
         `"${i.Status}"`,
         `"${i.District}"`,
@@ -506,6 +511,9 @@ export default function IndicatorTable({
               <th className="py-3 px-4 font-semibold text-right select-none cursor-pointer hover:text-emerald-300" onClick={() => handleSort("AchievedValue")}>
                 Achieved <ArrowUpDown className="w-3 h-3 inline ml-1" />
               </th>
+              <th className="py-3 px-4 font-semibold text-right select-none text-slate-400" title="Logframe end-of-project target">
+                Target
+              </th>
               <th className="py-3 px-4 font-semibold text-right select-none cursor-pointer hover:text-emerald-300" onClick={() => handleSort("Progress")}>
                 Progress <ArrowUpDown className="w-3 h-3 inline ml-1" />
               </th>
@@ -544,6 +552,18 @@ export default function IndicatorTable({
                 </td>
                 <td className="py-2.5 px-4 text-right font-mono text-slate-400">{item.BaselineValue}</td>
                 <td className="py-2.5 px-4 text-right font-mono text-slate-200 font-semibold">{item.AchievedValue}</td>
+                <td className="py-2.5 px-4 text-right font-mono">
+                  {item.Target != null ? (
+                    <div className="flex flex-col items-end leading-tight">
+                      <span className="text-amber-400/90">{item.Target}</span>
+                      <span className="text-[9px] text-slate-500">
+                        {item.Target > 0 ? Math.round((item.AchievedValue / item.Target) * 100) : 0}% to tgt
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="text-slate-600">—</span>
+                  )}
+                </td>
                 <td className="py-2.5 px-4 text-right font-mono font-bold text-slate-100">
                   <div className="flex items-center justify-end gap-1.5">
                     <span>{item.Progress}%</span>
@@ -573,21 +593,30 @@ export default function IndicatorTable({
                   </span>
                 </td>
                 <td className="py-2.5 px-4 text-center">
-                  <button
-                    onClick={() => handleStartEdit(item)}
-                    className="p-1 px-2.5 rounded bg-slate-800 hover:bg-emerald-900/40 border border-slate-700/60 hover:border-emerald-500/30 text-slate-300 hover:text-emerald-300 transition-all inline-flex items-center gap-1 cursor-pointer font-medium"
-                    title="Edit baseline achieved criteria"
-                  >
-                    <Edit3 className="w-3 h-3" />
-                    <span>Adjust</span>
-                  </button>
+                  <div className="inline-flex items-center gap-1.5">
+                    <button
+                      onClick={() => setHistoryItem(item)}
+                      className="p-1 px-2 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700/60 text-slate-300 hover:text-emerald-300 transition-all inline-flex items-center gap-1 cursor-pointer"
+                      title="View progress history"
+                    >
+                      <History className="w-3 h-3" />
+                    </button>
+                    <button
+                      onClick={() => handleStartEdit(item)}
+                      className="p-1 px-2.5 rounded bg-slate-800 hover:bg-emerald-900/40 border border-slate-700/60 hover:border-emerald-500/30 text-slate-300 hover:text-emerald-300 transition-all inline-flex items-center gap-1 cursor-pointer font-medium"
+                      title="Edit baseline achieved criteria"
+                    >
+                      <Edit3 className="w-3 h-3" />
+                      <span>Adjust</span>
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
 
             {filteredAndSortedIndicators.length === 0 && (
               <tr>
-                <td colSpan={10} className="py-12 text-center text-slate-500 text-xs">
+                <td colSpan={11} className="py-12 text-center text-slate-500 text-xs">
                   No operational monitoring variables matched selected parameter limits. Try widening filtering scope.
                 </td>
               </tr>
@@ -726,6 +755,11 @@ export default function IndicatorTable({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Indicator progress history drill-down */}
+      {historyItem && (
+        <IndicatorHistoryModal indicator={historyItem} onClose={() => setHistoryItem(null)} />
       )}
 
     </div>
