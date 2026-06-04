@@ -3,6 +3,7 @@ import { User, UserRole, Indicator, ThresholdAlert, SyncStatus } from "./types";
 import { getEnrichedIndicators } from "./data";
 import { supabase } from "./lib/supabase";
 import * as db from "./lib/db";
+import { getQueue, enqueue, removeFromQueue } from "./lib/offlineQueue";
 import AuthModal from "./components/AuthModal";
 import MapSection from "./components/MapSection";
 import IndicatorTable from "./components/IndicatorTable";
@@ -41,8 +42,39 @@ export default function App() {
   const [syncStatus, setSyncStatus] = useState<SyncStatus>({
     lastSyncTime: null,
     isOnline: navigator.onLine,
-    pendingChangesCount: 0
+    pendingChangesCount: getQueue().length
   });
+
+  // Optimistically apply an indicator edit to local state + cache.
+  const applyLocalIndicatorEdit = (id: string, baseline: number, achieved: number) => {
+    setIndicators(prev => {
+      const next = prev.map(it => {
+        if (it.IndicatorID !== id) return it;
+        const progress = baseline > 0 ? parseFloat(((achieved / baseline) * 100).toFixed(1)) : 100;
+        const status: Indicator["Status"] =
+          progress < 100 ? "Critical" : progress < 130 ? "Need Attention" : "On Track";
+        return { ...it, BaselineValue: baseline, AchievedValue: achieved, Progress: progress, Status: status, LastUpdated: new Date().toISOString() };
+      });
+      localStorage.setItem("avdp_cached_indicators", JSON.stringify(next));
+      return next;
+    });
+  };
+
+  // Replay any queued offline edits once connectivity returns.
+  const flushOfflineQueue = async () => {
+    const queue = getQueue();
+    if (queue.length === 0 || !currentUser) return;
+    for (const item of queue) {
+      try {
+        await db.updateIndicator(item.id, item.baseline, item.achieved, currentUser);
+        removeFromQueue(item.id);
+      } catch (err) {
+        console.warn(`Failed to replay queued edit for ${item.id}; will retry later.`, err);
+      }
+    }
+    setSyncStatus(prev => ({ ...prev, pendingChangesCount: getQueue().length }));
+    await syncWithServer();
+  };
 
   const [loading, setLoading] = useState<boolean>(true);
   const [syncingIndicator, setSyncingIndicator] = useState<boolean>(false);
@@ -104,6 +136,17 @@ export default function App() {
     };
   }, []);
 
+  // Replay queued offline edits when we come back online or sign in.
+  useEffect(() => {
+    if (syncStatus.isOnline && currentUser && syncStatus.pendingChangesCount > 0) {
+      flushOfflineQueue();
+    }
+    const onReconnect = () => flushOfflineQueue();
+    window.addEventListener("online", onReconnect);
+    return () => window.removeEventListener("online", onReconnect);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [syncStatus.isOnline, currentUser]);
+
   // Apply any ?district= from the URL on first load
   useEffect(() => {
     const d = initialParams.get("district");
@@ -144,7 +187,7 @@ export default function App() {
       setSyncStatus({
         lastSyncTime: new Date().toLocaleTimeString(),
         isOnline: true,
-        pendingChangesCount: 0
+        pendingChangesCount: getQueue().length
       });
     } catch (err) {
       console.warn("Supabase unreachable. Proceeding with stored offline dataset.", err);
@@ -160,6 +203,15 @@ export default function App() {
   // Modify individual indicator values (CRUD under RBAC guard, enforced by RLS)
   const handleUpdateIndicator = async (id: string, baseline: number, achieved: number) => {
     if (!currentUser) throw new Error("Authentication required.");
+
+    // Offline-first: if there's no connectivity, apply locally and queue for replay.
+    if (!navigator.onLine) {
+      applyLocalIndicatorEdit(id, baseline, achieved);
+      enqueue({ id, baseline, achieved });
+      setSyncStatus(prev => ({ ...prev, isOnline: false, pendingChangesCount: getQueue().length }));
+      return;
+    }
+
     try {
       await db.updateIndicator(id, baseline, achieved, currentUser);
       await syncWithServer();
@@ -268,6 +320,12 @@ export default function App() {
           {syncStatus.lastSyncTime && (
             <span className="text-slate-400 text-[11px] hidden sm:inline">
               Last Synced: {syncStatus.lastSyncTime}
+            </span>
+          )}
+          {syncStatus.pendingChangesCount > 0 && (
+            <span className="flex items-center gap-1 text-amber-400 text-[11px] bg-amber-950/30 border border-amber-500/25 px-2 py-0.5 rounded font-mono">
+              <HardDrive className="w-3 h-3" />
+              {syncStatus.pendingChangesCount} pending sync
             </span>
           )}
           <button 
