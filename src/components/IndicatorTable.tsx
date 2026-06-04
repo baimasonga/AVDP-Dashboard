@@ -221,6 +221,20 @@ export default function IndicatorTable({
     document.body.removeChild(clickLink);
   };
 
+  // Export the filtered set as JSON (for programmatic / integration use)
+  const handleExportJSON = () => {
+    const blob = new Blob([JSON.stringify(filteredAndSortedIndicators, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `AVDP_Agricultural_Metrics_${new Date().toISOString().split("T")[0]}.json`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   // Prints the filtered database directly as high-fidelity PDF page
   const handlePrintPDF = () => {
     window.print();
@@ -355,6 +369,14 @@ export default function IndicatorTable({
           >
             <Download className="w-3.5 h-3.5" />
             Export CSV
+          </button>
+          <button
+            onClick={handleExportJSON}
+            className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-medium px-3 py-2 rounded-lg transition-all cursor-pointer shadow-sm"
+            id="json-export-btn"
+          >
+            <FileUp className="w-3.5 h-3.5" />
+            Export JSON
           </button>
           <button
             onClick={handlePrintPDF}

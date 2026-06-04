@@ -13,6 +13,8 @@ import ExecutiveAnalytics from "./components/ExecutiveAnalytics";
 import YieldForecasting from "./components/YieldForecasting";
 import MarketInformation from "./components/MarketInformation";
 import CropCalendar from "./components/CropCalendar";
+import ProactiveInsights from "./components/ProactiveInsights";
+import GenderAnalytics from "./components/GenderAnalytics";
 import { 
   Building2, Globe, Shield, RefreshCw, Radio, HardDrive, 
   Wifi, WifiOff, FileSpreadsheet, Layers, Bell, Bot, History,
@@ -383,8 +385,15 @@ export default function App() {
               </div>
             )}
 
+            {/* Auto-derived "what to watch" insight cards */}
+            <ProactiveInsights
+              indicators={indicators}
+              onSelectDistrict={setSelectedDistrict}
+              isLowBandwidth={isLowBandwidth}
+            />
+
             {/* McKinsey-style Strategic Informatics & Charts Board */}
-            <ExecutiveAnalytics 
+            <ExecutiveAnalytics
               indicators={indicators}
               selectedDistrict={selectedDistrict}
               onSelectDistrict={setSelectedDistrict}
@@ -434,13 +443,16 @@ export default function App() {
             </div>
 
             {/* AVDP Surveys & Field Evaluations Registry Hub */}
-            <SurveyRegistry 
+            <SurveyRegistry
               currentUser={currentUser}
               indicators={indicators}
               selectedDistrict={selectedDistrict}
               isLowBandwidth={isLowBandwidth}
               onRefreshLogs={syncWithServer}
             />
+
+            {/* Gender & youth inclusion analytics (survey disaggregation) */}
+            <GenderAnalytics selectedDistrict={selectedDistrict} isLowBandwidth={isLowBandwidth} />
 
             {/* Subscription threshold rules + Automated email notifications mock simulator */}
             <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
