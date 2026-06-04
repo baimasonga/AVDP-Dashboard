@@ -196,7 +196,7 @@ async function startServer() {
   const autoAssessAlerts = (ind: Indicator, lastUser: string) => {
     // If progress is subpar (< 110%) and indicates high risk, check if we need to auto-trigger alert
     if (ind.Progress < 110.0) {
-      const alreadyTriggered = alertsStore.some(a => a.indicatorId === ind.IndicatorID && a.status === "Pending");
+      const alreadyTriggered = alertsStore.some(a => a.indicatorId === ind.IndicatorID);
       if (!alreadyTriggered) {
         const newAlert: ThresholdAlert = {
           id: `alert-${Date.now()}`,
@@ -310,11 +310,25 @@ async function startServer() {
     newIndicators.forEach((newIndInput) => {
       const index = indicatorsStore.findIndex(i => i.IndicatorID === newIndInput.IndicatorID);
       if (index !== -1) {
-        indicatorsStore[index] = {
+        const merged = {
           ...indicatorsStore[index],
           ...newIndInput,
           LastUpdated: new Date().toISOString()
         };
+
+        // Recompute progress and status so they stay consistent with the imported values
+        merged.Progress = parseFloat(
+          (merged.BaselineValue > 0 ? (merged.AchievedValue / merged.BaselineValue) * 100 : 100).toFixed(1)
+        );
+        if (merged.Progress < 100) {
+          merged.Status = "Critical";
+        } else if (merged.Progress < 130) {
+          merged.Status = "Need Attention";
+        } else {
+          merged.Status = "On Track";
+        }
+
+        indicatorsStore[index] = merged;
       }
     });
 
@@ -574,7 +588,7 @@ Here is your regional strategic forecast based on our cached AVDP metrics:
 
     try {
       const response = await aiClient.models.generateContent({
-        model: "gemini-3.5-flash",
+        model: "gemini-2.5-flash",
         contents: systemicContextPrompt,
         config: {
           temperature: 0.85

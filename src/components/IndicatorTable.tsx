@@ -154,7 +154,7 @@ export default function IndicatorTable({
     }
 
     if (currentUser.role === UserRole.OFFICER && currentUser.district && currentUser.district !== item.District) {
-      setEditingError(`Permission Denied. You are the Officer for Kenema; you cannot modify ${item.District} indicators.`);
+      setEditingError(`Permission Denied. You are the Officer for ${currentUser.district}; you cannot modify ${item.District} indicators.`);
       setTimeout(() => setEditingError(null), 4000);
       return;
     }
