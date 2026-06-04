@@ -1,21 +1,22 @@
 import React, { useState } from "react";
 import { User, UserRole } from "../types";
+import { signIn } from "../lib/db";
 import { Key, Shield, User as UserIcon, Lock, AlertCircle, Sparkles } from "lucide-react";
 
 interface AuthModalProps {
   currentUser: User | null;
-  onLogin: (user: User) => void;
   onLogout: () => void;
 }
 
-export default function AuthModal({ currentUser, onLogin, onLogout }: AuthModalProps) {
+export default function AuthModal({ currentUser, onLogout }: AuthModalProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [selectedRole, setSelectedRole] = useState<UserRole>(UserRole.STAKEHOLDER);
   const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
-  // Quick Preset credentials to make testing extremely user-friendly
+  // Quick Preset credentials to make demoing easy (these are real Supabase Auth users)
   const Presets = [
     {
       name: "Mohamed Bangura (Admin)",
@@ -48,43 +49,23 @@ export default function AuthModal({ currentUser, onLogin, onLogout }: AuthModalP
     setError(null);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
       setError("Please fill in all security parameter credentials.");
       return;
     }
-
-    // Secure authentication check
-    const matchedPreset = Presets.find(
-      p => p.email.toLowerCase() === email.toLowerCase() && p.password === password
-    );
-
-    if (matchedPreset) {
-      onLogin({
-        id: `user-${matchedPreset.role.toLowerCase()}`,
-        email: matchedPreset.email,
-        name: matchedPreset.name,
-        role: matchedPreset.role,
-        district: matchedPreset.district
-      });
-      setError(null);
+    setSubmitting(true);
+    setError(null);
+    try {
+      // Real authentication against Supabase Auth. Roles/districts come from the
+      // user's server-side profile — they cannot be chosen or spoofed by the client.
+      await signIn(email, password);
       setIsOpen(false);
-    } else {
-      // General testing password bypass to keep operations responsive
-      if (password.length >= 4) {
-        onLogin({
-          id: `user-custom-${Date.now()}`,
-          email,
-          name: email.split("@")[0].toUpperCase(),
-          role: selectedRole,
-          district: selectedRole === UserRole.OFFICER ? "Kailahun" : undefined // default fallback
-        });
-        setError(null);
-        setIsOpen(false);
-      } else {
-        setError("Invalid credentials. Try using one of our quick presets below.");
-      }
+    } catch (err: any) {
+      setError(err.message || "Invalid credentials. Try one of the quick presets below.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -184,27 +165,18 @@ export default function AuthModal({ currentUser, onLogin, onLogout }: AuthModalP
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-[11px] font-mono tracking-wider uppercase text-slate-400 mb-1.5 font-semibold">
-                    Target Identity Role Type (For customized RBAC test)
-                  </label>
-                  <select
-                    value={selectedRole}
-                    onChange={(e) => setSelectedRole(e.target.value as UserRole)}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-lg py-2 px-3 text-xs text-slate-100 focus:outline-none focus:border-emerald-500 font-medium"
-                  >
-                    <option value={UserRole.ADMIN}>Admin - Bulk imports, threshold parameters</option>
-                    <option value={UserRole.OFFICER}>District Officer - Edit regional agriculture rows</option>
-                    <option value={UserRole.STAKEHOLDER}>Stakeholder Auditor - Read only & custom exports</option>
-                    <option value={UserRole.PUBLIC}>Public Viewer - Basic visualizations cache</option>
-                  </select>
-                </div>
+                <p className="text-[10px] text-slate-500 font-mono leading-relaxed">
+                  Your access role (Admin / Officer / Stakeholder) is determined by your
+                  server-side profile and enforced by database Row Level Security — it
+                  cannot be selected here.
+                </p>
 
                 <button
                   type="submit"
-                  className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold py-2.5 rounded-lg transition-all tracking-wider uppercase shadow-md shadow-emerald-900/20 cursor-pointer"
+                  disabled={submitting}
+                  className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold py-2.5 rounded-lg transition-all tracking-wider uppercase shadow-md shadow-emerald-900/20 cursor-pointer disabled:opacity-50"
                 >
-                  Verify Access Authorization
+                  {submitting ? "Authenticating…" : "Verify Access Authorization"}
                 </button>
               </form>
 

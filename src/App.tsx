@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { User, UserRole, Indicator, ThresholdAlert, SyncStatus } from "./types";
 import { getEnrichedIndicators } from "./data";
+import { supabase } from "./lib/supabase";
+import * as db from "./lib/db";
 import AuthModal from "./components/AuthModal";
 import MapSection from "./components/MapSection";
 import IndicatorTable from "./components/IndicatorTable";
@@ -71,6 +73,15 @@ export default function App() {
     // Initial query check
     syncWithServer();
 
+    // Restore any existing Supabase auth session, and track auth changes
+    db.getCurrentUser().then(setCurrentUser).catch(() => {});
+    const { data: authSub } = supabase.auth.onAuthStateChange(async () => {
+      const u = await db.getCurrentUser().catch(() => null);
+      setCurrentUser(u);
+      // Logs become readable/insertable once signed in — refresh.
+      syncWithServer();
+    });
+
     // Setup network status listeners
     const handleOnline = () => setSyncStatus(prev => ({ ...prev, isOnline: true }));
     const handleOffline = () => setSyncStatus(prev => ({ ...prev, isOnline: false }));
@@ -81,33 +92,27 @@ export default function App() {
     return () => {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
+      authSub.subscription.unsubscribe();
     };
   }, []);
 
-  // Sync state functions
+  // Pull the latest data from Supabase, caching it locally for offline use.
   const syncWithServer = async () => {
     setSyncingIndicator(true);
     try {
-      // Get indicators
-      const resIndicators = await fetch("/api/indicators");
-      if (resIndicators.ok) {
-        const freshInd = await resIndicators.json();
-        setIndicators(freshInd);
-        localStorage.setItem("avdp_cached_indicators", JSON.stringify(freshInd));
-      }
+      const [freshInd, freshAlt, freshLogs] = await Promise.all([
+        db.getIndicators(),
+        db.getAlerts(),
+        db.getLogs().catch(() => [] as typeof logs), // logs need auth; ignore if anon
+      ]);
 
-      // Get warnings triggers
-      const resAlerts = await fetch("/api/alerts");
-      if (resAlerts.ok) {
-        const freshAlt = await resAlerts.json();
-        setAlerts(freshAlt);
-        localStorage.setItem("avdp_cached_alerts", JSON.stringify(freshAlt));
-      }
+      setIndicators(freshInd);
+      localStorage.setItem("avdp_cached_indicators", JSON.stringify(freshInd));
 
-      // Get audit log indexes
-      const resLogs = await fetch("/api/logs");
-      if (resLogs.ok) {
-        const freshLogs = await resLogs.json();
+      setAlerts(freshAlt);
+      localStorage.setItem("avdp_cached_alerts", JSON.stringify(freshAlt));
+
+      if (freshLogs.length > 0) {
         setLogs(freshLogs);
         localStorage.setItem("avdp_cached_logs", JSON.stringify(freshLogs));
       }
@@ -118,7 +123,7 @@ export default function App() {
         pendingChangesCount: 0
       });
     } catch (err) {
-      console.warn("Express server unreachable. Proceeding with stored offline dataset.", err);
+      console.warn("Supabase unreachable. Proceeding with stored offline dataset.", err);
       setSyncStatus(prev => ({
         ...prev,
         isOnline: false
@@ -128,59 +133,15 @@ export default function App() {
     }
   };
 
-  // Modify individual indicator values (CRUD under RBAC guard)
+  // Modify individual indicator values (CRUD under RBAC guard, enforced by RLS)
   const handleUpdateIndicator = async (id: string, baseline: number, achieved: number) => {
     if (!currentUser) throw new Error("Authentication required.");
-
-    // Update locally immediately for lag-free visual updating (Offline First!)
-    const targetIdx = indicators.findIndex(i => i.IndicatorID === id);
-    if (targetIdx === -1) return;
-
-    const currentIndicators = [...indicators];
-    const targetItem = currentIndicators[targetIdx];
-    
-    const updatedProgress = baseline > 0 ? parseFloat(((achieved / baseline) * 100).toFixed(1)) : 100;
-    let status: "On Track" | "Need Attention" | "Critical" = "On Track";
-    if (updatedProgress < 100) status = "Critical";
-    else if (updatedProgress >= 100 && updatedProgress < 130) status = "Need Attention";
-
-    const updatedItem: Indicator = {
-      ...targetItem,
-      BaselineValue: baseline,
-      AchievedValue: achieved,
-      Progress: updatedProgress,
-      Status: status,
-      LastUpdated: new Date().toISOString()
-    };
-
-    currentIndicators[targetIdx] = updatedItem;
-    setIndicators(currentIndicators);
-    localStorage.setItem("avdp_cached_indicators", JSON.stringify(currentIndicators));
-
-    // Post to server synchronously
     try {
-      const res = await fetch(`/api/indicators/${id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          "X-User-Role": currentUser.role,
-          "X-User-Email": currentUser.email,
-          ...(currentUser.district ? { "X-User-District": currentUser.district } : {})
-        },
-        body: JSON.stringify({ BaselineValue: baseline, AchievedValue: achieved })
-      });
-
-      if (!res.ok) {
-        const errPayload = await res.json();
-        throw new Error(errPayload.error || "Server validation error.");
-      }
-
-      // Refresh log list following successful transactions write
-      syncWithServer();
+      await db.updateIndicator(id, baseline, achieved, currentUser);
+      await syncWithServer();
     } catch (err: any) {
-      // Revert if write fails and notify user
       console.error(err);
-      syncWithServer(); // Pull back server state
+      await syncWithServer(); // Pull back authoritative state
       throw new Error(err.message || "Failed to commit metrics parameters changes.");
     }
   };
@@ -190,23 +151,16 @@ export default function App() {
     if (!currentUser || currentUser.role !== UserRole.ADMIN) {
       throw new Error("Access Denied. Only administration accounts support CSV uploads.");
     }
-
     try {
-      const res = await fetch("/api/indicators/batch", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-User-Role": currentUser.role,
-          "X-User-Email": currentUser.email
-        },
-        body: JSON.stringify(data)
-      });
-
-      if (!res.ok) {
-        throw new Error("Batch import operation rejected by security manager.");
-      }
-
-      syncWithServer();
+      const rows = data
+        .filter(d => d.IndicatorID != null && d.BaselineValue != null && d.AchievedValue != null)
+        .map(d => ({
+          IndicatorID: d.IndicatorID as string,
+          BaselineValue: d.BaselineValue as number,
+          AchievedValue: d.AchievedValue as number,
+        }));
+      await db.batchImportIndicators(rows, currentUser);
+      await syncWithServer();
     } catch (err: any) {
       console.error(err);
       throw new Error(err.message || "Bulk CSV imports faced syncing obstacles.");
@@ -215,34 +169,48 @@ export default function App() {
 
   // Subscribe dynamic thresholds warning
   const handleCreateAlertRule = async (rule: Partial<ThresholdAlert>) => {
+    if (!currentUser) throw new Error("Sign in to manage alert rules.");
     try {
-      const res = await fetch("/api/alerts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(rule)
-      });
-
-      if (!res.ok) {
-        throw new Error("Alert registration rejected.");
-      }
-
-      syncWithServer();
-    } catch (err) {
+      await db.createAlert(
+        {
+          indicatorId: rule.indicatorId as string,
+          recipientEmail: rule.recipientEmail as string,
+          thresholdValue: rule.thresholdValue as number,
+          condition: (rule.condition as "below" | "above") || "below",
+        },
+        currentUser
+      );
+      await syncWithServer();
+    } catch (err: any) {
       console.error(err);
-      throw new Error("Failed to subscribe alert rule.");
+      throw new Error(err.message || "Failed to subscribe alert rule.");
     }
   };
 
   // Test send dispatch trigger alerts simulated email logs
   const handleTriggerAlertDispatch = async (id: string) => {
     try {
-      const res = await fetch(`/api/alerts/dispatch/${id}`, {
-        method: "POST"
-      });
-      if (!res.ok) {
-        throw new Error("Alert dispatch simulation failed.");
-      }
-      syncWithServer();
+      await db.dispatchAlert(id, currentUser);
+      await syncWithServer();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // Pause / resume / delete alert rules
+  const handleToggleAlert = async (id: string, enabled: boolean) => {
+    try {
+      await db.updateAlert(id, { enabled }, currentUser);
+      await syncWithServer();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteAlert = async (id: string) => {
+    try {
+      await db.deleteAlert(id, currentUser);
+      await syncWithServer();
     } catch (err) {
       console.error(err);
     }
@@ -329,10 +297,9 @@ export default function App() {
           </div>
 
           {/* Secure Admin Gate modal toggles */}
-          <AuthModal 
+          <AuthModal
             currentUser={currentUser}
-            onLogin={setCurrentUser}
-            onLogout={() => setCurrentUser(null)}
+            onLogout={async () => { await db.signOut(); setCurrentUser(null); }}
           />
         </div>
       </header>
@@ -456,11 +423,14 @@ export default function App() {
             {/* Subscription threshold rules + Automated email notifications mock simulator */}
             <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
               <div className="xl:col-span-7">
-                <AlertManager 
+                <AlertManager
                   alerts={alerts}
                   indicators={indicators}
+                  currentUser={currentUser}
                   onCreateAlertRule={handleCreateAlertRule}
                   onTriggerAlertDispatch={handleTriggerAlertDispatch}
+                  onToggleAlert={handleToggleAlert}
+                  onDeleteAlert={handleDeleteAlert}
                   isLowBandwidth={isLowBandwidth}
                 />
               </div>

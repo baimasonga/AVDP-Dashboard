@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { SurveyRecord, SurveyResponse, User, UserRole } from "../types";
+import { SurveyRecord, SurveyResponse, User, UserRole, Gender, AgeGroup } from "../types";
+import * as db from "../lib/db";
 import { 
   ClipboardCheck, Users, FileSpreadsheet, Plus, Filter, 
   CheckCircle2, Play, Calendar, MapPin, Database, Sparkles, 
@@ -36,6 +37,8 @@ export default function SurveyRegistry({
   const [activeSurveyId, setActiveSurveyId] = useState<string>("");
   const [respondentName, setRespondentName] = useState("");
   const [respondentType, setRespondentType] = useState<SurveyResponse["respondentType"]>("Smallholder Farmer");
+  const [gender, setGender] = useState<Gender>("Female");
+  const [ageGroup, setAgeGroup] = useState<AgeGroup>("Youth (18-35)");
   const [customAnswers, setCustomAnswers] = useState<Record<string, string>>({});
   
   const [submitting, setSubmitting] = useState(false);
@@ -52,23 +55,18 @@ export default function SurveyRegistry({
   const [newTarget, setNewTarget] = useState<number>(200);
   const [newIndicatorsAffected, setNewIndicatorsAffected] = useState<string>("");
 
-  // Load surveys from backend
+  // Load surveys from Supabase
   const fetchSurveysAndResponses = async () => {
     try {
       setLoading(true);
-      const resSurveys = await fetch("/api/surveys");
-      const resResponses = await fetch("/api/surveys/responses");
-
-      if (resSurveys.ok) {
-        const surveysData = await resSurveys.json();
-        setSurveys(surveysData);
-      }
-      if (resResponses.ok) {
-        const responsesData = await resResponses.json();
-        setResponses(responsesData);
-      }
+      const [surveysData, responsesData] = await Promise.all([
+        db.getSurveys(),
+        db.getSurveyResponses(),
+      ]);
+      setSurveys(surveysData);
+      setResponses(responsesData);
     } catch (err: any) {
-      console.warn("Express server unreachable for surveys. Loading built-in preset.", err);
+      console.warn("Supabase unreachable for surveys.", err);
       setError("Database connection offline. Proceeding in dry-run buffer.");
     } finally {
       setLoading(false);
@@ -123,6 +121,10 @@ export default function SurveyRegistry({
   // Handle Response Submissions
   const handleSubmitResponse = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!currentUser) {
+      setSubmitError("Please sign in to log field survey responses.");
+      return;
+    }
     if (!activeSurveyId || !respondentName.trim()) {
       setSubmitError("Please designate the focal survey project ID and respondent name.");
       return;
@@ -138,29 +140,21 @@ export default function SurveyRegistry({
       answer: customAnswers[q.key] || "No response details"
     }));
 
-    const responsePayload = {
-      surveyId: activeSurveyId,
-      respondentName,
-      respondentType,
-      district: selectedSurveyDetails?.district || "Kailahun",
-      commodity: selectedSurveyDetails?.focalCommodity || "General",
-      answers: formattedAnswers
-    };
-
     try {
-      const res = await fetch("/api/surveys/responses", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
+      await db.submitSurveyResponse(
+        {
+          surveyId: activeSurveyId,
+          respondentName,
+          respondentType,
+          district: selectedSurveyDetails?.district || "Kailahun",
+          commodity: selectedSurveyDetails?.focalCommodity || "General",
+          gender,
+          ageGroup,
+          answers: formattedAnswers,
         },
-        body: JSON.stringify(responsePayload)
-      });
+        currentUser
+      );
 
-      if (!res.ok) {
-        throw new Error("M&E Gateway rejected survey metadata payload.");
-      }
-
-      await res.json();
       setSubmitSuccess("Stakeholder interview submitted successfully to national metrics logs.");
       setRespondentName("");
       setCustomAnswers({});
@@ -191,28 +185,18 @@ export default function SurveyRegistry({
         ? newIndicatorsAffected.split(",").map(id => id.trim().toUpperCase())
         : [];
 
-      const res = await fetch("/api/surveys", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-User-Role": currentUser?.role || UserRole.STAKEHOLDER,
-          "X-User-Email": currentUser?.email || "anonymous@avdp.org.sl"
-        },
-        body: JSON.stringify({
+      await db.createSurvey(
+        {
           title: newTitle,
           description: newDescription,
           type: newType,
           district: newDistrict,
           focalCommodity: newCommodity,
           targetCount: newTarget,
-          indicatorsAffected: parsedIndicators
-        })
-      });
-
-      if (!res.ok) {
-        const payloadErr = await res.json();
-        throw new Error(payloadErr.error || "Survey creation rejected.");
-      }
+          indicatorsAffected: parsedIndicators,
+        },
+        currentUser
+      );
 
       setSubmitSuccess(`New scheduled M&E survey successfully configured for ${newDistrict}!`);
       setNewTitle("");
@@ -757,6 +741,38 @@ export default function SurveyRegistry({
                   value={selectedSurveyDetails?.district || "N/A"}
                   className="w-full bg-slate-950 border border-slate-800 text-slate-500 rounded-lg p-2 font-mono text-xs cursor-not-allowed"
                 />
+              </div>
+            </div>
+
+            {/* Gender & youth disaggregation (IFAD reporting requirement) */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[10px] font-mono uppercase text-slate-500 tracking-wider mb-1 font-semibold">
+                  Respondent Gender
+                </label>
+                <select
+                  value={gender}
+                  onChange={(e) => setGender(e.target.value as Gender)}
+                  className="w-full bg-slate-900 text-slate-200 border border-slate-800 rounded-lg p-2 text-xs focus:outline-none focus:border-emerald-500 font-semibold"
+                >
+                  <option value="Female">Female</option>
+                  <option value="Male">Male</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-[10px] font-mono uppercase text-slate-500 tracking-wider mb-1 font-semibold">
+                  Age Bracket
+                </label>
+                <select
+                  value={ageGroup}
+                  onChange={(e) => setAgeGroup(e.target.value as AgeGroup)}
+                  className="w-full bg-slate-900 text-slate-200 border border-slate-800 rounded-lg p-2 text-xs focus:outline-none focus:border-emerald-500 font-semibold"
+                >
+                  <option value="Youth (18-35)">Youth (18-35)</option>
+                  <option value="Adult (36-59)">Adult (36-59)</option>
+                  <option value="Senior (60+)">Senior (60+)</option>
+                </select>
               </div>
             </div>
 

@@ -1,20 +1,26 @@
 import React, { useState } from "react";
-import { ThresholdAlert, Indicator } from "../types";
-import { Mail, AlertTriangle, Plus, BellRing, Sparkles, Send, CheckCircle2, UserCheck, ShieldClose } from "lucide-react";
+import { ThresholdAlert, Indicator, User } from "../types";
+import { Mail, AlertTriangle, Plus, BellRing, Sparkles, Send, CheckCircle2, UserCheck, ShieldClose, Pause, Play, Trash2 } from "lucide-react";
 
 interface AlertManagerProps {
   alerts: ThresholdAlert[];
   indicators: Indicator[];
+  currentUser: User | null;
   onCreateAlertRule: (rule: Partial<ThresholdAlert>) => Promise<void>;
   onTriggerAlertDispatch: (id: string) => Promise<void>;
+  onToggleAlert: (id: string, enabled: boolean) => Promise<void>;
+  onDeleteAlert: (id: string) => Promise<void>;
   isLowBandwidth: boolean;
 }
 
 export default function AlertManager({
   alerts,
   indicators,
+  currentUser,
   onCreateAlertRule,
   onTriggerAlertDispatch,
+  onToggleAlert,
+  onDeleteAlert,
   isLowBandwidth
 }: AlertManagerProps) {
   // Subscribers parameters
@@ -226,7 +232,12 @@ export default function AlertManager({
                   </div>
 
                   <div className="flex items-center gap-3 md:flex-col justify-between align-end">
-                    {alert.status === "Sent" ? (
+                    {!alert.enabled ? (
+                      <span className="text-[10px] text-slate-400 font-mono font-bold flex items-center gap-1 border border-slate-600/30 bg-slate-800/40 px-2 py-0.5 rounded uppercase">
+                        <Pause className="w-3.5 h-3.5" />
+                        Paused
+                      </span>
+                    ) : alert.status === "Sent" ? (
                       <span className="text-[10px] text-emerald-400 font-mono font-bold flex items-center gap-1 border border-emerald-500/20 bg-emerald-950/30 px-2 py-0.5 rounded uppercase">
                         <CheckCircle2 className="w-3.5 h-3.5" />
                         Dispatched
@@ -238,15 +249,36 @@ export default function AlertManager({
                       </span>
                     )}
 
-                    <button
-                      onClick={() => handleDispatchSimulation(alert.id)}
-                      disabled={isLoading}
-                      className="text-[10px] bg-slate-800 hover:bg-slate-700 border border-slate-700/60 font-mono py-1 px-2.5 rounded text-slate-300 font-medium cursor-pointer flex items-center gap-1 text-center justify-center min-w-[110px]"
-                      title="Run simulated dispatch testing"
-                    >
-                      <Send className="w-2.5 h-2.5" />
-                      {isLoading ? "Sending..." : "Test Dispatch"}
-                    </button>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => handleDispatchSimulation(alert.id)}
+                        disabled={isLoading || !alert.enabled}
+                        className="text-[10px] bg-slate-800 hover:bg-slate-700 border border-slate-700/60 font-mono py-1 px-2.5 rounded text-slate-300 font-medium cursor-pointer flex items-center gap-1 text-center justify-center disabled:opacity-40 disabled:cursor-not-allowed"
+                        title="Run simulated dispatch testing"
+                      >
+                        <Send className="w-2.5 h-2.5" />
+                        {isLoading ? "Sending..." : "Test"}
+                      </button>
+
+                      {currentUser && (
+                        <>
+                          <button
+                            onClick={() => onToggleAlert(alert.id, !alert.enabled)}
+                            className="text-[10px] bg-slate-800 hover:bg-slate-700 border border-slate-700/60 p-1.5 rounded text-slate-300 cursor-pointer"
+                            title={alert.enabled ? "Pause this alert rule" : "Resume this alert rule"}
+                          >
+                            {alert.enabled ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
+                          </button>
+                          <button
+                            onClick={() => onDeleteAlert(alert.id)}
+                            className="text-[10px] bg-red-950/40 hover:bg-red-900/50 border border-red-500/30 p-1.5 rounded text-red-300 cursor-pointer"
+                            title="Delete this alert rule"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
               );
