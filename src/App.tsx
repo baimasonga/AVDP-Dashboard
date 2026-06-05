@@ -83,8 +83,8 @@ export default function App() {
   // Initialize tab + district from the URL so views are shareable/deep-linkable
   const initialParams = new URLSearchParams(window.location.search);
   const initialTab = initialParams.get("tab");
-  const [activeTab, setActiveTab] = useState<"analytics" | "gis" | "forecasting" | "markets" | "calendar" | "settings">(
-    initialTab === "gis" || initialTab === "forecasting" || initialTab === "markets" || initialTab === "calendar" || initialTab === "settings" ? initialTab : "analytics"
+  const [activeTab, setActiveTab] = useState<"analytics" | "gis" | "markets" | "calendar">(
+    initialTab === "gis" || initialTab === "markets" || initialTab === "calendar" ? initialTab : "analytics"
   );
 
   // --- COMPREHENSIVE DATA SYNCHRONIZATION INTERFACE ---
@@ -411,23 +411,9 @@ export default function App() {
                 : "border-transparent text-slate-400 hover:text-slate-200"
             }`}
           >
-            🔎 Value Chain Locator
+            🧭 GIS Informatics
             <span className="text-[9px] bg-emerald-950 border border-emerald-500/25 text-emerald-400 px-1.5 py-0.5 rounded uppercase font-bold tracking-normal leading-none">
-              Find
-            </span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab("forecasting")}
-            className={`text-xs uppercase font-mono tracking-wider font-bold pb-3 px-4 border-b-2 transition-all cursor-pointer flex items-center gap-2 ${
-              activeTab === "forecasting"
-                ? "border-emerald-500 text-emerald-400 font-semibold"
-                : "border-transparent text-slate-400 hover:text-slate-200"
-            }`}
-          >
-            📈 Yield Forecasting
-            <span className="text-[9px] bg-emerald-950 border border-emerald-500/25 text-emerald-400 px-1.5 py-0.5 rounded uppercase font-bold tracking-normal leading-none">
-              Model
+              Map
             </span>
           </button>
 
@@ -498,6 +484,24 @@ export default function App() {
               isLowBandwidth={isLowBandwidth}
             />
 
+            {/* Dynamic Predictive Trend-line Outcomes Forecaster */}
+            <YieldForecasting
+              indicators={indicators}
+              selectedDistrict={selectedDistrict}
+              isLowBandwidth={isLowBandwidth}
+            />
+
+            {/* Decision-support advisor remains in the workspace; GIS now has its own portal tab. */}
+            <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 relative overflow-visible">
+              <div className="xl:col-span-12 h-full flex flex-col justify-between">
+                <AdviserChat
+                  currentDistrict={selectedDistrict}
+                  activeCommodity="Rice"
+                  isLowBandwidth={isLowBandwidth}
+                />
+              </div>
+            </div>
+
             {/* Analytical spreadsheet metrics grid component */}
             <div id="analytical-table-mount">
               <IndicatorTable
@@ -540,18 +544,10 @@ export default function App() {
         )}
 
         {activeTab === "gis" && (
-          <ValueChainLocator
+          <MapSection
             indicators={indicators}
             selectedDistrict={selectedDistrict}
             onSelectDistrict={setSelectedDistrict}
-            isLowBandwidth={isLowBandwidth}
-          />
-        )}
-
-        {activeTab === "forecasting" && (
-          <YieldForecasting
-            indicators={indicators}
-            selectedDistrict={selectedDistrict}
             isLowBandwidth={isLowBandwidth}
           />
         )}

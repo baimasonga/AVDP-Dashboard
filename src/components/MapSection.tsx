@@ -479,7 +479,7 @@ export default function MapSection({
             </aside>
             <svg
               viewBox={`0 0 ${MAP_W} ${MAP_H}`}
-              className="w-full max-w-[860px] h-auto drop-shadow-3xl transition-all"
+              className="w-full max-w-[620px] h-auto drop-shadow-3xl transition-all bg-white rounded-xl"
               id="sl-district-svg-map"
             >
               <defs>
