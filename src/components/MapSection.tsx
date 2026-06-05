@@ -238,71 +238,7 @@ export default function MapSection({
   return (
     <div className="relative bg-[#020617]" style={{ minHeight: "calc(100vh - 220px)" }}>
 
-      {/* ── Floating search bar (top-left) ── */}
-      <div className="absolute top-4 left-4 z-30 w-72">
-        <div className="bg-white rounded-xl shadow-2xl overflow-visible">
-          <div className="flex items-center gap-2 px-3 py-2.5">
-            <Search className="w-4 h-4 text-slate-400 shrink-0" />
-            <input
-              value={districtSearchQuery}
-              onChange={e => { setDistrictSearchQuery(e.target.value); setSearchOpen(!!e.target.value); }}
-              onFocus={() => districtSearchQuery && setSearchOpen(true)}
-              onKeyDown={e => {
-                if (e.key === "Enter" && filteredDistrictResults[0]) {
-                  onSelectDistrict(filteredDistrictResults[0].name);
-                  setDistrictSearchQuery(""); setSearchOpen(false);
-                }
-                if (e.key === "Escape") { setSearchOpen(false); setDistrictSearchQuery(""); }
-              }}
-              placeholder="District, region, or value chain…"
-              className="flex-1 text-xs text-slate-900 outline-none placeholder-slate-400 bg-transparent"
-            />
-            {districtSearchQuery && (
-              <button onClick={() => { setDistrictSearchQuery(""); setSearchOpen(false); }} className="text-slate-400 hover:text-slate-700 cursor-pointer">
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
-
-          {searchOpen && filteredDistrictResults.length > 0 && (
-            <div className="border-t border-slate-100 max-h-64 overflow-y-auto divide-y divide-slate-50 rounded-b-xl shadow-xl">
-              {filteredDistrictResults.map(d => (
-                <button
-                  key={d.name}
-                  onClick={() => { onSelectDistrict(d.name); setDistrictSearchQuery(""); setSearchOpen(false); }}
-                  className={`w-full text-left px-4 py-2.5 text-xs hover:bg-emerald-50 transition-colors ${selectedDistrict === d.name ? "bg-emerald-50" : "bg-white"}`}
-                >
-                  <div className="flex justify-between items-center">
-                    <span className="font-bold text-slate-900">{d.name}</span>
-                    {d.criticalCount > 0 && <span className="text-[9px] text-red-600 font-bold">{d.criticalCount} critical</span>}
-                  </div>
-                  <div className="text-slate-500 mt-0.5 flex items-center gap-2">
-                    <span>{d.code} · {d.region}</span>
-                    {d.commodities?.length > 0 && (
-                      <span className="text-emerald-700 font-medium">{d.commodities.slice(0,2).join(", ")}</span>
-                    )}
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
-
-          {searchOpen && districtSearchQuery && filteredDistrictResults.length === 0 && (
-            <div className="border-t border-slate-100 px-4 py-3 text-xs text-slate-500 bg-white rounded-b-xl">
-              No match. Try "Bo", "Eastern", "Rice", or "Cocoa".
-            </div>
-          )}
-
-          <div className="border-t border-slate-100 px-3 py-2">
-            <button
-              onClick={() => { onSelectDistrict("Western Area Urban"); setDistrictSearchQuery(""); setSearchOpen(false); }}
-              className="text-[10px] font-bold text-slate-500 hover:text-emerald-700 flex items-center gap-1 cursor-pointer"
-            >
-              <LocateFixed className="w-3 h-3" /> Use My Location
-            </button>
-          </div>
-        </div>
-      </div>
+      {/* ── Floating search bar removed for now (kept logic available to restore) ── */}
 
       {/* ── Coordinate badge (top-right of map) ── */}
       <div className="absolute top-4 right-4 z-20 font-mono text-[9px] text-slate-400 bg-slate-950/80 border border-slate-800/40 px-2.5 py-2 rounded-lg pointer-events-none">
