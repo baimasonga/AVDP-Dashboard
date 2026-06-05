@@ -5,7 +5,6 @@ import { supabase } from "./lib/supabase";
 import * as db from "./lib/db";
 import { getQueue, enqueue, removeFromQueue } from "./lib/offlineQueue";
 import AuthModal from "./components/AuthModal";
-import ValueChainLocator from "./components/ValueChainLocator";
 import IndicatorTable from "./components/IndicatorTable";
 import AlertManager from "./components/AlertManager";
 import AdviserChat from "./components/AdviserChat";
@@ -84,8 +83,8 @@ export default function App() {
   // Initialize tab + district from the URL so views are shareable/deep-linkable
   const initialParams = new URLSearchParams(window.location.search);
   const initialTab = initialParams.get("tab");
-  const [activeTab, setActiveTab] = useState<"analytics" | "gis" | "markets" | "calendar">(
-    initialTab === "gis" || initialTab === "markets" || initialTab === "calendar" ? initialTab : "analytics"
+  const [activeTab, setActiveTab] = useState<"analytics" | "gis" | "markets" | "calendar" | "settings">(
+    initialTab === "gis" || initialTab === "markets" || initialTab === "calendar" || initialTab === "settings" ? initialTab : "analytics"
   );
 
   // --- COMPREHENSIVE DATA SYNCHRONIZATION INTERFACE ---
