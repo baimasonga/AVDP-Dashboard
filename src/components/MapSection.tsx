@@ -318,7 +318,7 @@ export default function MapSection({
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 relative overflow-visible">
         
         {/* Main Interactive Geographic Canvas (Left Panel) */}
-        <div className="xl:col-span-8 bg-[#020617] rounded-2xl border border-slate-900 p-4 flex flex-col justify-between min-h-[440px] relative overflow-hidden">
+        <div className="xl:col-span-8 bg-[#020617] rounded-2xl border border-slate-900 p-4 flex flex-col justify-between min-h-[600px] relative overflow-hidden">
           
           {/* Subtle GIS Topographic Scale Rule & Navigation Overlay */}
           <div className="absolute top-3 left-3 z-10 flex flex-col gap-1.5 pointer-events-none font-mono text-[9px] text-slate-400 bg-slate-950/80 border border-slate-920/40 p-2.5 rounded-lg">
@@ -342,7 +342,7 @@ export default function MapSection({
           <div className="w-full flex items-center justify-center py-4 relative">
             <svg
               viewBox={`0 0 ${MAP_W} ${MAP_H}`}
-              className="w-full max-w-[520px] h-auto drop-shadow-3xl transition-all"
+              className="w-full max-w-[860px] h-auto drop-shadow-3xl transition-all"
               id="sl-district-svg-map"
             >
               <defs>
