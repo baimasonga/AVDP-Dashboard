@@ -99,7 +99,7 @@ export default function SurveyRegistry({
         { key: "q2", text: "Estimated rice yield increase factor", placeholder: "e.g. 1.3x" },
         { key: "q3", text: "Fertilizer accessibility feedback", placeholder: "e.g. Received late / In time" }
       ];
-    } else if (comm === "Cocoa" || comm === "Coffee") {
+    } else if (comm === "Cocoa") {
       return [
         { key: "q1", text: "Total seed heads or saplings received", placeholder: "e.g. 250" },
         { key: "q2", text: "Estimated sapling survival coefficient (%)", placeholder: "e.g. 85%" },
@@ -407,7 +407,7 @@ export default function SurveyRegistry({
               >
                 <option value="Rice">Rice</option>
                 <option value="Cocoa">Cocoa</option>
-                <option value="Coffee">Coffee</option>
+                <option value="Vegetables">Vegetables</option>
                 <option value="Oil Palm">Oil Palm</option>
                 <option value="General">General/Infrastructure</option>
               </select>

@@ -106,7 +106,7 @@ export default function ExecutiveAnalytics({
 
   // Processing commodity baseline vs achieved for the SVG Gap Chart
   const cropProductivityData = useMemo(() => {
-    const crops: ("Rice" | "Cocoa" | "Coffee" | "Oil Palm")[] = ["Rice", "Cocoa", "Coffee", "Oil Palm"];
+    const crops: ("Rice" | "Cocoa" | "Vegetables" | "Oil Palm")[] = ["Rice", "Cocoa", "Vegetables", "Oil Palm"];
     
     return crops.map(crop => {
       // Filter yield indicators of this crop
@@ -491,7 +491,7 @@ export default function ExecutiveAnalytics({
               <div className="bg-slate-950/40 p-3 rounded-xl border border-slate-900 text-[11px] leading-relaxed font-mono flex items-start gap-2 text-slate-400">
                 <Info className="w-4 h-4 shrink-0 text-amber-500 mt-0.5" />
                 <p>
-                  Calculations indicate that <span className="text-emerald-400 font-bold">Rice cultivation yield rates</span> have exceeded original estimates by nearly 88% due to active inland valley swamp drainage completions. Meanwhile, Coffee yields average minor gaps resulting from soil leaching cycles in southern hills.
+                  Calculations indicate that <span className="text-emerald-400 font-bold">Rice cultivation yield rates</span> have exceeded original estimates by nearly 88% due to active inland valley swamp drainage completions. Meanwhile, Vegetable value chains (onion, pepper, Irish potato) show steady gains in the northern highlands, with minor gaps where cold-chain storage is limited.
                 </p>
               </div>
             </div>

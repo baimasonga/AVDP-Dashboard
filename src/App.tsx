@@ -591,9 +591,9 @@ export default function App() {
 
                   <div className="space-y-4">
                     <div className="p-3.5 bg-slate-950/40 border border-slate-900 rounded-xl space-y-1">
-                      <span className="text-[10px] text-slate-400 font-bold uppercase">Coffee Hulling Benchmarks</span>
+                      <span className="text-[10px] text-slate-400 font-bold uppercase">Vegetable Curing & Storage Benchmarks</span>
                       <p className="text-slate-400 text-[11px]">
-                        Cherries must undergo clean drying until moisture content reaches <strong>11-12%</strong>. Hulling must be done within 6 weeks of harvest to lock in premium Highland Robusta flavor codes.
+                        Onions must be field-cured 7–10 days then stored below <strong>65% humidity</strong> in ventilated cribs. Irish potato is held at <strong>4–10°C</strong>; peppers move within 48 hours to limit dry-season spoilage.
                       </p>
                     </div>
 

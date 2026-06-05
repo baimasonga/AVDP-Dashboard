@@ -59,7 +59,7 @@ export default function IndicatorTable({
     return Array.from(new Set(indicators.map(i => i.District))).sort();
   }, [indicators]);
 
-  const uniqueCommodities = ["Rice", "Cocoa", "Coffee", "Oil Palm", "General"];
+  const uniqueCommodities = ["Rice", "Cocoa", "Vegetables", "Oil Palm", "General"];
   const uniqueCategories = [
     "Yield Increase", "Gender Inclusion", "Farmer Income", 
     "Road Rehab", "Seedling Survival Rate", 
@@ -565,7 +565,7 @@ export default function IndicatorTable({
                   <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-medium ${
                     item.Commodity === "Rice" ? "bg-sky-950/40 text-sky-400 border border-sky-900/30" : 
                     item.Commodity === "Cocoa" ? "bg-amber-950/40 text-amber-400 border border-amber-900/30" :
-                    item.Commodity === "Coffee" ? "bg-orange-950/40 text-orange-400 border border-orange-900/30" : 
+                    item.Commodity === "Vegetables" ? "bg-green-950/40 text-green-400 border border-green-900/30" : 
                     item.Commodity === "Oil Palm" ? "bg-yellow-950/40 text-yellow-500 border border-yellow-900/30" :
                     "bg-slate-800 text-slate-400"
                   }`}>

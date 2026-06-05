@@ -62,23 +62,23 @@ const CROP_CALENDAR_DATA = {
     bgGrad: "from-amber-950/20 to-orange-950/20",
     colorTheme: "amber"
   },
-  "Coffee": {
+  "Vegetables": {
     schedule: [
-      { month: "Jan", activity: "Harvesting", workload: "High", desc: "Peak Robusta cherries collection. Selective hand-plucking of crimson ripe berries." },
-      { month: "Feb", activity: "Harvesting", workload: "High", desc: "Concluding picking. Spreading coffee cherries on concrete beds to sun-dry to 11-12% moisture." },
-      { month: "Mar", activity: "Weeding & Maintenance", workload: "Medium", desc: "Pruning coffee bushes, clearing dead trunks, and checking shade distribution offsets." },
-      { month: "Apr", activity: "Land Preparation", workload: "Low", desc: "Establishing rows for young plants in forest gaps. Adding organic mulch covers." },
-      { month: "May", activity: "Nursery / Sowing", workload: "Medium", desc: "Preparing premium highland coffee sprouts and transplanting them in permanent locations." },
-      { month: "Jun", activity: "Weeding & Maintenance", workload: "Medium", desc: "First weeding wave to secure young coffee trees from nutrient strangle." },
-      { month: "Jul", activity: "Weeding & Maintenance", workload: "Low", desc: "Rainfall runoff monitoring. Ensuring hillsides do not erode topsoil." },
-      { month: "Aug", activity: "Weeding & Maintenance", workload: "Low", desc: "Applying organic compost mixes and clearing weeds from the trunk basins." },
-      { month: "Sep", activity: "Weeding & Maintenance", workload: "Low", desc: "Pest monitoring (Berry Borer mitigation indices check)." },
-      { month: "Oct", activity: "Weeding & Maintenance", workload: "Medium", desc: "Pre-harvest weeding around coffee bushes to facilitate access paths." },
-      { month: "Nov", activity: "Harvesting", workload: "Medium", desc: "Early green-rim plucking. First cherry washing and hulling trials." },
-      { month: "Dec", activity: "Harvesting", workload: "High", desc: "Major cherry harvest. Transit of raw dry bags to Kenema and Kono cooperatives." }
+      { month: "Jan", activity: "Harvesting", workload: "High", desc: "Dry-season harvest peak — onion bulbs, peppers and Irish potato lifted from IVS gardens and highland plots." },
+      { month: "Feb", activity: "Harvesting", workload: "High", desc: "Continued harvesting and grading. Curing onions under shade before bagging for market." },
+      { month: "Mar", activity: "Off-season / Transit", workload: "Medium", desc: "Bulking and transport to Bo/Makeni markets. Ventilated storage to limit pepper spoilage." },
+      { month: "Apr", activity: "Land Preparation", workload: "Medium", desc: "Clearing and bed-forming ahead of the rains; compost incorporation in valley-bottom gardens." },
+      { month: "May", activity: "Nursery / Sowing", workload: "High", desc: "Raising pepper and onion seedlings in shaded nurseries; seed-potato sprouting in the highlands." },
+      { month: "Jun", activity: "Weeding & Maintenance", workload: "Medium", desc: "Transplanting seedlings to beds; first weeding and staking of pepper plants." },
+      { month: "Jul", activity: "Weeding & Maintenance", workload: "Medium", desc: "Drainage management during peak rains to prevent waterlogging and fungal blight." },
+      { month: "Aug", activity: "Weeding & Maintenance", workload: "Low", desc: "Integrated pest management — monitoring aphids and leaf miners; organic sprays." },
+      { month: "Sep", activity: "Land Preparation", workload: "Medium", desc: "Preparing dry-season IVS plots; repairing irrigation channels and water-lifting points." },
+      { month: "Oct", activity: "Nursery / Sowing", workload: "High", desc: "Main dry-season sowing — onion sets, pepper transplants and Irish potato in Koinadugu/Falaba highlands." },
+      { month: "Nov", activity: "Weeding & Maintenance", workload: "Medium", desc: "Irrigation scheduling, fertiliser top-dressing and earthing-up of potato ridges." },
+      { month: "Dec", activity: "Harvesting", workload: "Medium", desc: "Early pepper and leafy harvests begin; first onion bulbs sized for festive markets." }
     ] as SeasonalSchedule[],
-    bgGrad: "from-amber-950/15 to-amber-900/10",
-    colorTheme: "amber"
+    bgGrad: "from-green-950/20 to-emerald-950/10",
+    colorTheme: "emerald"
   },
   "Oil Palm": {
     schedule: [
@@ -112,7 +112,7 @@ export default function CropCalendar({
   selectedDistrict,
   isLowBandwidth
 }: CropCalendarProps) {
-  const [selectedCrop, setSelectedCrop] = useState<"Rice" | "Cocoa" | "Coffee" | "Oil Palm">("Rice");
+  const [selectedCrop, setSelectedCrop] = useState<"Rice" | "Cocoa" | "Vegetables" | "Oil Palm">("Rice");
   const [activeMonth, setActiveMonth] = useState<string>("Oct"); // default crop indicator peak
   const [districtFilter, setDistrictFilter] = useState<string>("All");
 
@@ -173,7 +173,7 @@ export default function CropCalendar({
 
         {/* Commodity selectors switcher */}
         <div className="flex flex-wrap gap-1.5 bg-slate-950 p-1 rounded-xl border border-slate-900">
-          {(["Rice", "Cocoa", "Coffee", "Oil Palm"] as const).map(crop => (
+          {(["Rice", "Cocoa", "Vegetables", "Oil Palm"] as const).map(crop => (
             <button
               key={crop}
               onClick={() => {
@@ -181,7 +181,7 @@ export default function CropCalendar({
                 // Adjust active month to suitable peak months for better initial user details
                 if (crop === "Rice") setActiveMonth("Nov");
                 else if (crop === "Cocoa") setActiveMonth("Oct");
-                else if (crop === "Coffee") setActiveMonth("Dec");
+                else if (crop === "Vegetables") setActiveMonth("Jan");
                 else setActiveMonth("Mar");
               }}
               className={`text-[11px] font-mono px-3 py-1.5 rounded-lg cursor-pointer font-bold uppercase transition-all ${

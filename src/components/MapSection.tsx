@@ -95,16 +95,16 @@ type GISLayer = "yield" | "infra" | "climate";
 
 // Value-chain to commodity mapping for search
 const VALUE_CHAIN_KEYWORDS: Record<string, string> = {
-  "rice": "Rice", "cocoa": "Cocoa", "coffee": "Coffee",
+  "rice": "Rice", "cocoa": "Cocoa", "vegetables": "Vegetables", "vegetable": "Vegetables", "onion": "Vegetables", "pepper": "Vegetables", "potato": "Vegetables",
   "oil palm": "Oil Palm", "palm": "Oil Palm", "palm oil": "Oil Palm",
   "oilpalm": "Oil Palm", "general": "General"
 };
 
 // District → commodities map
 const DISTRICT_COMMODITIES: Record<string, string[]> = {
-  "Kailahun": ["Cocoa","Coffee","Oil Palm","Rice"],
-  "Kenema": ["Cocoa","Coffee","Oil Palm","Rice"],
-  "Kono": ["Cocoa","Coffee","Oil Palm","Rice"],
+  "Kailahun": ["Cocoa","Vegetables","Oil Palm","Rice"],
+  "Kenema": ["Cocoa","Vegetables","Oil Palm","Rice"],
+  "Kono": ["Cocoa","Vegetables","Oil Palm","Rice"],
   "Bombali": ["Rice","Oil Palm"],
   "Falaba": ["Rice","Oil Palm"],
   "Koinadugu": ["Rice","Oil Palm"],
@@ -221,7 +221,7 @@ export default function MapSection({
     if (!sum) return Array(5).fill(0).map((_, i) => ({ label: ["Rice","Tree Crops","Roads","Processing","Income"][i], val: 50 }));
     return [
       { label: "Rice Index",      val: Math.min(Math.round(((sum.riceYieldAchieved||65)/(sum.riceYieldBaseline||40))*100), 150) },
-      { label: "Tree Crops",      val: Math.min(Math.round((((sum.cocoaYieldAchieved||48)+(sum.coffeeYieldAchieved||32)+(sum.palmYieldAchieved||24))/((sum.cocoaYieldBaseline||30)+(sum.coffeeYieldBaseline||20)+(sum.palmYieldBaseline||15)))*100), 150) },
+      { label: "Tree Crops",      val: Math.min(Math.round((((sum.cocoaYieldAchieved||48)+(sum.vegetableYieldAchieved||32)+(sum.palmYieldAchieved||24))/((sum.cocoaYieldBaseline||30)+(sum.vegetableYieldBaseline||20)+(sum.palmYieldBaseline||15)))*100), 150) },
       { label: "Feeder Roads",    val: Math.min(Math.round((sum.roadsRehabbed/25)*100), 150) },
       { label: "Agri-Processing", val: Math.min(Math.round((sum.facilitiesBuilt/3)*100), 150) },
       { label: "Farmer Income",   val: Math.min(Math.round((sum.farmerIncomeAverage/200)*100), 150) },

@@ -352,7 +352,7 @@ select cron.schedule('avdp-daily-digest', '0 6 * * *', $$select public.generate_
 -- ============================================================
 insert into public.indicators (id,name,baseline,achieved,district,commodity,last_updated) values
 ('LGF-001','Yield Increase',40,34,'Kailahun','Cocoa','2026-06-03T10:00:00.000Z'),
-('LGF-002','Yield Increase',43,54,'Kenema','Coffee','2026-06-02T10:06:00.000Z'),
+('LGF-002','Yield Increase',43,54,'Kenema','Vegetables','2026-06-02T10:06:00.000Z'),
 ('LGF-003','Gender Inclusion',11,38,'Kono','General','2026-06-01T10:12:00.000Z'),
 ('LGF-004','Farmer Income',57,62,'Bo','General','2026-05-31T10:18:00.000Z'),
 ('LGF-005','Road Rehab',23,47,'Bonthe','General','2026-05-30T10:24:00.000Z'),
@@ -368,7 +368,7 @@ insert into public.indicators (id,name,baseline,achieved,district,commodity,last
 ('LGF-015','Road Rehab',10,42,'Western Area Rural','General','2026-05-30T11:24:00.000Z'),
 ('LGF-016','Market Access Improvement',13,53,'Western Area Urban','General','2026-06-03T11:30:00.000Z'),
 ('LGF-017','Road Rehab',35,49,'Kailahun','General','2026-06-02T11:36:00.000Z'),
-('LGF-018','Processing Facilities Built',20,17,'Kenema','Coffee','2026-06-01T11:42:00.000Z'),
+('LGF-018','Processing Facilities Built',20,17,'Kenema','Vegetables','2026-06-01T11:42:00.000Z'),
 ('LGF-019','Road Rehab',44,50,'Kono','General','2026-05-31T11:48:00.000Z'),
 ('LGF-020','Gender Inclusion',28,52,'Bo','General','2026-05-30T11:54:00.000Z'),
 ('LGF-021','Processing Facilities Built',47,50,'Bonthe','Cocoa','2026-06-03T12:00:00.000Z'),
@@ -384,7 +384,7 @@ insert into public.indicators (id,name,baseline,achieved,district,commodity,last
 ('LGF-031','Seedling Survival Rate',21,22,'Western Area Rural','General','2026-06-03T13:00:00.000Z'),
 ('LGF-032','Farmer Income',58,77,'Western Area Urban','General','2026-06-02T13:06:00.000Z'),
 ('LGF-033','Processing Facilities Built',41,73,'Kailahun','Cocoa','2026-06-01T13:12:00.000Z'),
-('LGF-034','Processing Facilities Built',49,78,'Kenema','Coffee','2026-05-31T13:18:00.000Z'),
+('LGF-034','Processing Facilities Built',49,78,'Kenema','Vegetables','2026-05-31T13:18:00.000Z'),
 ('LGF-035','Gender Inclusion',48,41,'Kono','General','2026-05-30T13:24:00.000Z'),
 ('LGF-036','Farmer Income',36,61,'Bo','General','2026-06-03T13:30:00.000Z'),
 ('LGF-037','Market Access Improvement',28,32,'Bonthe','General','2026-06-02T13:36:00.000Z'),
@@ -432,7 +432,7 @@ insert into public.indicators (id,name,baseline,achieved,district,commodity,last
 ('LGF-079','Market Access Improvement',30,57,'Western Area Rural','General','2026-05-31T17:48:00.000Z'),
 ('LGF-080','Road Rehab',11,29,'Western Area Urban','General','2026-05-30T17:54:00.000Z'),
 ('LGF-081','Yield Increase',46,67,'Kailahun','Cocoa','2026-06-03T18:00:00.000Z'),
-('LGF-082','Yield Increase',36,67,'Kenema','Coffee','2026-06-02T18:06:00.000Z'),
+('LGF-082','Yield Increase',36,67,'Kenema','Vegetables','2026-06-02T18:06:00.000Z'),
 ('LGF-083','Road Rehab',13,16,'Kono','General','2026-06-01T18:12:00.000Z'),
 ('LGF-084','Seedling Survival Rate',26,27,'Bo','Cocoa','2026-05-31T18:18:00.000Z'),
 ('LGF-085','Road Rehab',14,16,'Bonthe','General','2026-05-30T18:24:00.000Z'),
@@ -448,7 +448,7 @@ insert into public.indicators (id,name,baseline,achieved,district,commodity,last
 ('LGF-095','Market Access Improvement',49,69,'Western Area Rural','General','2026-05-30T19:24:00.000Z'),
 ('LGF-096','Yield Increase',33,70,'Western Area Urban','General','2026-06-03T19:30:00.000Z'),
 ('LGF-097','Gender Inclusion',18,21,'Kailahun','General','2026-06-02T19:36:00.000Z'),
-('LGF-098','Seedling Survival Rate',60,74,'Kenema','Coffee','2026-06-01T19:42:00.000Z'),
+('LGF-098','Seedling Survival Rate',60,74,'Kenema','Vegetables','2026-06-01T19:42:00.000Z'),
 ('LGF-099','Seedling Survival Rate',16,40,'Kono','Oil Palm','2026-05-31T19:48:00.000Z'),
 ('LGF-100','Seedling Survival Rate',45,67,'Bo','Oil Palm','2026-05-30T19:54:00.000Z')
 on conflict (id) do nothing;

@@ -126,11 +126,11 @@ export const RAW_INDICATORS_DATA: { id: string; name: IndicatorCategory; baselin
 // Enrich raw indicators by mapping to districts and commodities for advanced drill-down and maps features
 export const getEnrichedIndicators = (): Indicator[] => {
   const districts = SIERRA_LEONE_DISTRICTS.map(d => d.name);
-  const commoditiesByRegion: Record<string, ("Rice" | "Cocoa" | "Coffee" | "Oil Palm" | "General")[]> = {
-    "Eastern": ["Cocoa", "Coffee", "Oil Palm", "Rice"],
+  const commoditiesByRegion: Record<string, ("Rice" | "Cocoa" | "Vegetables" | "Oil Palm" | "General")[]> = {
+    "Eastern": ["Cocoa", "Vegetables", "Oil Palm", "Rice"],
     "Southern": ["Oil Palm", "Rice", "Cocoa"],
-    "Northern": ["Rice", "Oil Palm", "General"],
-    "North West": ["Rice", "General"],
+    "Northern": ["Rice", "Vegetables", "Oil Palm", "General"],
+    "North West": ["Rice", "Vegetables", "General"],
     "Western": ["General"]
   };
 
@@ -224,8 +224,8 @@ export const getDistrictSummaries = (indicators: Indicator[]): DistrictMetricSum
       riceYieldAchieved: filterYield("Rice", "AchievedValue") || 65,
       cocoaYieldBaseline: filterYield("Cocoa", "BaselineValue") || 30,
       cocoaYieldAchieved: filterYield("Cocoa", "AchievedValue") || 48,
-      coffeeYieldBaseline: filterYield("Coffee", "BaselineValue") || 25,
-      coffeeYieldAchieved: filterYield("Coffee", "AchievedValue") || 42,
+      vegetableYieldBaseline: filterYield("Vegetables", "BaselineValue") || 25,
+      vegetableYieldAchieved: filterYield("Vegetables", "AchievedValue") || 42,
       palmYieldBaseline: filterYield("Oil Palm", "BaselineValue") || 35,
       palmYieldAchieved: filterYield("Oil Palm", "AchievedValue") || 59,
       roadsRehabbed: Math.max(0, roadsRehabbed),

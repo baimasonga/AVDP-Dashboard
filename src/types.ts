@@ -31,7 +31,7 @@ export interface Indicator {
   Progress: number; // percentage (Achieved / Baseline * 100)
   Status: "On Track" | "Need Attention" | "Critical";
   District: string;
-  Commodity: "Rice" | "Cocoa" | "Coffee" | "Oil Palm" | "General";
+  Commodity: "Rice" | "Cocoa" | "Vegetables" | "Oil Palm" | "General";
   LastUpdated: string; // ISO String
 }
 
@@ -52,8 +52,8 @@ export interface DistrictMetricSummary {
   riceYieldAchieved: number;
   cocoaYieldBaseline: number;
   cocoaYieldAchieved: number;
-  coffeeYieldBaseline: number;
-  coffeeYieldAchieved: number;
+  vegetableYieldBaseline: number;
+  vegetableYieldAchieved: number;
   palmYieldBaseline: number;
   palmYieldAchieved: number;
   roadsRehabbed: number;
@@ -99,7 +99,7 @@ export interface SurveyRecord {
   district: string;
   respondentsCount: number;
   targetCount: number;
-  focalCommodity: "Rice" | "Cocoa" | "Coffee" | "Oil Palm" | "General";
+  focalCommodity: "Rice" | "Cocoa" | "Vegetables" | "Oil Palm" | "General";
   lastConducted: string; // ISO string
   indicatorsAffected: string[]; // Associated indicator keys like LGF-001
   keyFindings?: string;
@@ -114,7 +114,7 @@ export interface SurveyResponse {
   respondentName: string;
   respondentType: "Smallholder Farmer" | "Youth Co-op Member" | "Transport Operator" | "Local Offtaker" | "Swamp Cultivator";
   district: string;
-  commodity: "Rice" | "Cocoa" | "Coffee" | "Oil Palm" | "General";
+  commodity: "Rice" | "Cocoa" | "Vegetables" | "Oil Palm" | "General";
   gender?: Gender;
   ageGroup?: AgeGroup;
   answers: {

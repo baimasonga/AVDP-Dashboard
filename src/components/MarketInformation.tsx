@@ -38,15 +38,15 @@ const AVDP_VALUE_CHAINS = [
     spillageReductionPct: 12,
   },
   {
-    commodity: "Coffee" as const,
-    description: "Premium Highland Robusta wash-processing stations and direct huller machinery. Smallholder contracts bypass long broker supply links.",
-    hubs: ["Kenema", "Kailahun", "Kono"],
-    units: "bag (60kg)",
-    farmgateSll: 800000,
-    fairTradeSll: 1100000,
-    middlemanSll: 620000,
-    processingPremiumPct: 38,
-    spillageReductionPct: 15,
+    commodity: "Vegetables" as const,
+    description: "Onion, pepper and Irish-potato production in inland valley swamps and the Koinadugu/Falaba highlands. Aggregation through agri-business centres with ventilated storage cuts dry-season gluts and spoilage.",
+    hubs: ["Koinadugu", "Falaba", "Port Loko", "Bombali"],
+    units: "bag (50kg)",
+    farmgateSll: 300000,
+    fairTradeSll: 460000,
+    middlemanSll: 220000,
+    processingPremiumPct: 30,
+    spillageReductionPct: 22,
   },
   {
     commodity: "Oil Palm" as const,
@@ -95,9 +95,9 @@ const OFFTAKER_DIRECTORY = [
   },
   {
     id: "OT-004",
-    name: "Lion Mountain Coffee Roasters & Exporters",
-    commodity: "Coffee",
-    districts: ["Kono", "Kenema", "Kailahun"],
+    name: "Highland Fresh Produce Aggregators",
+    commodity: "Vegetables",
+    districts: ["Koinadugu", "Falaba", "Bombali"],
     yearlyQuotaMetricTons: 600,
     filledPct: 91,
     status: "Capacity Reached",
@@ -111,7 +111,7 @@ export default function MarketInformation({
   isLowBandwidth
 }: MarketInformationProps) {
   // Config state
-  const [activeChainComm, setActiveChainComm] = useState<"Rice" | "Cocoa" | "Coffee" | "Oil Palm">("Rice");
+  const [activeChainComm, setActiveChainComm] = useState<"Rice" | "Cocoa" | "Vegetables" | "Oil Palm">("Rice");
   
   // Interactive Calculator Slider / Form State
   const [harvestInputQty, setHarvestInputQty] = useState<number>(50); // e.g. 50 bags/gallons

@@ -21,7 +21,7 @@ export default function YieldForecasting({
   isLowBandwidth
 }: YieldForecastingProps) {
   // Selection States
-  const [selectedCommodity, setSelectedCommodity] = useState<"Rice" | "Cocoa" | "Coffee" | "Oil Palm">("Rice");
+  const [selectedCommodity, setSelectedCommodity] = useState<"Rice" | "Cocoa" | "Vegetables" | "Oil Palm">("Rice");
   const [districtFilter, setDistrictFilter] = useState<string>("All");
 
   // McKinsey Interactive Simulation Sliders
@@ -88,7 +88,7 @@ export default function YieldForecasting({
     const quarterMultipliers = {
       "Rice": [1.0, 0.95, 1.25, 1.35, 1.1, 1.4], // Q1'25, Q2'25, Q3'25, Q4'25, Q1'26, Q2'26
       "Cocoa": [1.0, 1.3, 0.95, 1.1, 1.15, 1.42],
-      "Coffee": [1.0, 1.15, 1.05, 1.2, 1.12, 1.38],
+      "Vegetables": [1.0, 1.15, 1.05, 1.2, 1.12, 1.38],
       "Oil Palm": [1.1, 1.25, 1.2, 1.3, 1.15, 1.45]
     }[selectedCommodity] || [1.0, 1.1, 1.05, 1.25, 1.15, 1.4];
 
@@ -257,7 +257,7 @@ export default function YieldForecasting({
 
         {/* Commodity Fast Selector */}
         <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-900">
-          {(["Rice", "Cocoa", "Coffee", "Oil Palm"] as const).map(crop => (
+          {(["Rice", "Cocoa", "Vegetables", "Oil Palm"] as const).map(crop => (
             <button
               key={crop}
               onClick={() => setSelectedCommodity(crop)}
