@@ -498,17 +498,6 @@ export default function App() {
               isLowBandwidth={isLowBandwidth}
             />
 
-            {/* Decision-support advisor remains in the workspace; GIS and Yield Forecasting have their own portal tabs. */}
-            <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 relative overflow-visible">
-              <div className="xl:col-span-12 h-full flex flex-col justify-between">
-                <AdviserChat
-                  currentDistrict={selectedDistrict}
-                  activeCommodity="Rice"
-                  isLowBandwidth={isLowBandwidth}
-                />
-              </div>
-            </div>
-
             {/* Analytical spreadsheet metrics grid component */}
             <div id="analytical-table-mount">
               <IndicatorTable
@@ -536,6 +525,17 @@ export default function App() {
 
             {/* Scheduled national M&E digest reports */}
             <ReportsPanel currentUser={currentUser} />
+
+            {/* Decision-support AI adviser — anchored at the bottom of the workspace */}
+            <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 relative overflow-visible">
+              <div className="xl:col-span-12 h-full flex flex-col justify-between">
+                <AdviserChat
+                  currentDistrict={selectedDistrict}
+                  activeCommodity="Rice"
+                  isLowBandwidth={isLowBandwidth}
+                />
+              </div>
+            </div>
           </>
         )}
 
