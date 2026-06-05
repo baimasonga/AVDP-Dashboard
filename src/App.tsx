@@ -17,6 +17,9 @@ import ProactiveInsights from "./components/ProactiveInsights";
 import GenderAnalytics from "./components/GenderAnalytics";
 import ReportsPanel from "./components/ReportsPanel";
 import GisWorkspace from "./components/GisWorkspace";
+import ImplementationTab from "./components/ImplementationTab";
+import ProductionTab from "./components/ProductionTab";
+import OutcomesTab from "./components/OutcomesTab";
 import {
   Building2, Globe, Shield, RefreshCw, Radio, HardDrive,
   Wifi, WifiOff, FileSpreadsheet, Layers, Bell, Bot, History,
@@ -83,8 +86,8 @@ export default function App() {
   // Initialize tab + district from the URL so views are shareable/deep-linkable
   const initialParams = new URLSearchParams(window.location.search);
   const initialTab = initialParams.get("tab");
-  const [activeTab, setActiveTab] = useState<"analytics" | "gis" | "markets" | "calendar" | "settings">(
-    initialTab === "gis" || initialTab === "markets" || initialTab === "calendar" || initialTab === "settings" ? initialTab : "analytics"
+  const [activeTab, setActiveTab] = useState<"analytics" | "implementation" | "production" | "outcomes" | "gis" | "markets" | "calendar" | "settings">(
+    ["implementation", "production", "outcomes", "gis", "markets", "calendar", "settings"].includes(initialTab || "") ? (initialTab as any) : "analytics"
   );
 
   // --- COMPREHENSIVE DATA SYNCHRONIZATION INTERFACE ---
@@ -404,6 +407,39 @@ export default function App() {
           </button>
 
           <button
+            onClick={() => setActiveTab("implementation")}
+            className={`text-xs uppercase font-mono tracking-wider font-bold pb-3 px-4 border-b-2 transition-all cursor-pointer ${
+              activeTab === "implementation"
+                ? "border-emerald-500 text-emerald-400 font-semibold"
+                : "border-transparent text-slate-400 hover:text-slate-200"
+            }`}
+          >
+            📋 Implementation
+          </button>
+
+          <button
+            onClick={() => setActiveTab("production")}
+            className={`text-xs uppercase font-mono tracking-wider font-bold pb-3 px-4 border-b-2 transition-all cursor-pointer ${
+              activeTab === "production"
+                ? "border-emerald-500 text-emerald-400 font-semibold"
+                : "border-transparent text-slate-400 hover:text-slate-200"
+            }`}
+          >
+            📈 Production &amp; Sales
+          </button>
+
+          <button
+            onClick={() => setActiveTab("outcomes")}
+            className={`text-xs uppercase font-mono tracking-wider font-bold pb-3 px-4 border-b-2 transition-all cursor-pointer ${
+              activeTab === "outcomes"
+                ? "border-emerald-500 text-emerald-400 font-semibold"
+                : "border-transparent text-slate-400 hover:text-slate-200"
+            }`}
+          >
+            🌍 Outcomes &amp; Finance
+          </button>
+
+          <button
             onClick={() => setActiveTab("gis")}
             className={`text-xs uppercase font-mono tracking-wider font-bold pb-3 px-4 border-b-2 transition-all cursor-pointer flex items-center gap-2 ${
               activeTab === "gis"
@@ -551,6 +587,10 @@ export default function App() {
             isLowBandwidth={isLowBandwidth}
           />
         )}
+
+        {activeTab === "implementation" && <ImplementationTab />}
+        {activeTab === "production" && <ProductionTab />}
+        {activeTab === "outcomes" && <OutcomesTab />}
 
         {activeTab === "markets" && (
           <>
