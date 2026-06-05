@@ -1,0 +1,1 @@
+- [GitHub push mechanism](github-push.md) — bash blocks all git; push by running scripts/post-merge.sh in a temp console workflow. User wants every change pushed.
