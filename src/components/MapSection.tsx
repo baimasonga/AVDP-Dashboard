@@ -1,6 +1,8 @@
 import React, { useState, useMemo } from "react";
+import * as d3 from "d3";
 import { SIERRA_LEONE_DISTRICTS, getDistrictSummaries } from "../data";
 import { Indicator, DistrictMetricSummary } from "../types";
+import sleGeoRaw from "../sleDistricts.geo.json";
 import { 
   MapPin, TrendingUp, HelpCircle, Eye, Info, Layers, RefreshCw, 
   Compass, Navigation, Route, AlertTriangle, ShieldAlert, CheckCircle2,
@@ -14,89 +16,26 @@ interface MapSectionProps {
   isLowBandwidth: boolean;
 }
 
-// Highly precise contiguous coordinate paths representing the actual geographic outline of Sierra Leone's 16 districts.
-const DISTRICT_PATHS: Record<string, { d: string; labelX: number; labelY: number }> = {
-  "Kambia": {
-    d: "M 120,120 L 115,100 L 135,70 L 165,70 L 180,105 L 170,125 L 140,135 Z",
-    labelX: 145,
-    labelY: 100
-  },
-  "Karene": {
-    d: "M 180,105 L 165,70 L 210,65 L 245,60 L 255,105 L 230,135 L 195,145 L 170,125 Z",
-    labelX: 205,
-    labelY: 105
-  },
-  "Bombali": {
-    d: "M 245,60 L 295,55 L 320,60 L 330,95 L 320,140 L 285,160 L 255,145 L 255,105 Z",
-    labelX: 285,
-    labelY: 105
-  },
-  "Koinadugu": {
-    d: "M 320,60 L 390,65 L 415,115 L 430,150 L 410,180 L 370,170 L 320,140 L 330,95 Z",
-    labelX: 365,
-    labelY: 120
-  },
-  "Falaba": {
-    d: "M 390,65 L 460,55 L 485,95 L 445,135 L 415,115 Z",
-    labelX: 430,
-    labelY: 92
-  },
-  "Kono": {
-    d: "M 430,150 L 485,135 L 520,185 L 490,225 L 445,230 L 410,180 Z",
-    labelX: 465,
-    labelY: 175
-  },
-  "Port Loko": {
-    d: "M 120,120 L 140,135 L 170,125 L 195,145 L 215,140 L 210,185 L 175,195 L 140,200 L 120,180 L 115,150 Z",
-    labelX: 165,
-    labelY: 148
-  },
-  "Western Area Urban": {
-    d: "M 98,180 L 114,180 L 114,185 L 98,185 Z",
-    labelX: 95,
-    labelY: 175
-  },
-  "Western Area Rural": {
-    d: "M 114,180 L 122,180 L 128,210 L 118,235 L 108,225 L 108,190 Z",
-    labelX: 118,
-    labelY: 215
-  },
-  "Moyamba": {
-    d: "M 122,180 L 140,200 L 175,195 L 210,185 L 235,215 L 230,250 L 200,275 L 150,265 Z",
-    labelX: 180,
-    labelY: 230
-  },
-  "Tonkolili": {
-    d: "M 215,140 L 255,145 L 285,160 L 320,140 L 370,170 L 345,205 L 320,225 L 285,220 L 235,215 L 210,185 Z",
-    labelX: 280,
-    labelY: 180
-  },
-  "Bo": {
-    d: "M 235,215 L 285,220 L 320,225 L 335,285 L 295,300 L 260,295 L 230,250 Z",
-    labelX: 275,
-    labelY: 255
-  },
-  "Kenema": {
-    d: "M 320,225 L 345,205 L 410,180 L 445,230 L 465,270 L 435,315 L 380,320 L 335,285 Z",
-    labelX: 380,
-    labelY: 260
-  },
-  "Kailahun": {
-    d: "M 445,230 L 490,225 L 530,250 L 490,295 L 465,270 Z",
-    labelX: 480,
-    labelY: 265
-  },
-  "Bonthe": {
-    d: "M 150,265 L 200,275 L 230,250 L 260,295 L 225,325 L 175,320 L 150,290 Z M 125,290 L 145,290 L 160,320 L 130,310 Z",
-    labelX: 195,
-    labelY: 295
-  },
-  "Pujehun": {
-    d: "M 225,325 L 260,295 L 295,300 L 335,285 L 380,320 L 345,365 L 290,360 Z",
-    labelX: 290,
-    labelY: 335
-  },
+// Real Sierra Leone district boundaries (geoBoundaries ADM2), rendered via d3-geo.
+// The dataset uses the pre-2017 14-district division, so the two newer districts
+// are folded into their parent ADM2 polygon for map aggregation/selection.
+type GeoFeature = { type: "Feature"; properties: { shapeName: string }; geometry: any };
+const GEO = sleGeoRaw as { type: "FeatureCollection"; features: GeoFeature[] };
+
+const MAP_W = 600;
+const MAP_H = 470;
+const projection = d3.geoIdentity().reflectY(true).fitExtent(
+  [[14, 14], [MAP_W - 14, MAP_H - 14]],
+  GEO as any
+);
+const geoPathGen = d3.geoPath(projection as any);
+
+// Post-2017 districts folded into the parent ADM2 polygon present in the data.
+const POLY_MEMBERS: Record<string, string[]> = {
+  Koinadugu: ["Koinadugu", "Falaba"],
+  Bombali: ["Bombali", "Karene"],
 };
+const membersFor = (name: string): string[] => POLY_MEMBERS[name] || [name];
 
 type GISLayer = "yield" | "infra" | "climate";
 
@@ -251,65 +190,58 @@ export default function MapSection({
     setHoveredDistrict(null);
   };
 
-  // Advanced GIS Thematic layer styling
-  const getThematicStyle = (item: DistrictMetricSummary) => {
-    const isSelected = selectedDistrict === item.name;
-    const isHovered = hoveredDistrict?.name === item.name;
+  // Advanced GIS Thematic layer styling, keyed by ADM2 polygon name.
+  const getThematicStyle = (name: string) => {
+    const members = membersFor(name);
+    const inDist = (i: Indicator) => members.includes(i.District);
+    const isSelected = members.includes(selectedDistrict || "");
+    const isHovered = hoveredDistrict ? members.includes(hoveredDistrict.name) : false;
 
-    let baseClass = "transition-all duration-300 stroke-[1] cursor-pointer fill-slate-900 stroke-slate-800";
-    let filterGlow = "";
+    let baseClass = "transition-all duration-300 stroke-[0.6] cursor-pointer fill-slate-900 stroke-slate-700";
 
     if (activeLayer === "yield") {
-      const countCritical = indicators.filter(i => i.District === item.name && i.Status === "Critical").length;
-      const countOnTrack = indicators.filter(i => i.District === item.name && i.Status === "On Track").length;
-      const total = indicators.filter(i => i.District === item.name).length;
+      const countCritical = indicators.filter(i => inDist(i) && i.Status === "Critical").length;
+      const countOnTrack = indicators.filter(i => inDist(i) && i.Status === "On Track").length;
+      const total = indicators.filter(inDist).length;
       const ratio = total > 0 ? countOnTrack / total : 0.8;
 
       if (countCritical >= 2) {
-        baseClass = isSelected 
-          ? "fill-red-900/60 stroke-red-400 stroke-[1.8]" 
-          : "fill-red-950/40 stroke-red-700 hover:fill-red-900/40 hover:stroke-red-500";
+        baseClass = isSelected
+          ? "fill-red-900/60 stroke-red-400 stroke-[1.4]"
+          : "fill-red-950/40 stroke-red-700 hover:fill-red-900/40 hover:stroke-red-500 stroke-[0.6]";
       } else if (ratio < 0.6) {
-        baseClass = isSelected 
-          ? "fill-amber-900/60 stroke-amber-400 stroke-[1.8]" 
-          : "fill-amber-950/40 stroke-amber-700 hover:fill-amber-900/40 hover:stroke-amber-500";
+        baseClass = isSelected
+          ? "fill-amber-900/60 stroke-amber-400 stroke-[1.4]"
+          : "fill-amber-950/40 stroke-amber-700 hover:fill-amber-900/40 hover:stroke-amber-500 stroke-[0.6]";
       } else {
-        baseClass = isSelected 
-          ? "fill-emerald-900/70 stroke-emerald-400 stroke-[1.8]" 
-          : "fill-slate-900 hover:fill-emerald-950/50 stroke-slate-800 hover:stroke-emerald-600";
+        baseClass = isSelected
+          ? "fill-emerald-900/70 stroke-emerald-400 stroke-[1.4]"
+          : "fill-slate-900 hover:fill-emerald-950/50 stroke-slate-700 hover:stroke-emerald-600 stroke-[0.6]";
       }
     } else if (activeLayer === "infra") {
-      // High Road rehabilitation index map (e.g. Kenema, Moyamba, Port Loko, Bo are major offtaker links)
       const majorRoadHubs = ["Kenema", "Moyamba", "Port Loko", "Bo", "Tonkolili", "Kambia"];
-      const isRoadDensityHub = majorRoadHubs.includes(item.name);
-
-      if (isRoadDensityHub) {
-        baseClass = isSelected
-          ? "fill-teal-900/60 stroke-teal-400 stroke-[1.8]"
-          : "fill-teal-950/30 stroke-teal-800 hover:fill-teal-900/40 hover:stroke-teal-500";
-      } else {
-        baseClass = isSelected
-          ? "fill-slate-800 stroke-teal-500 stroke-[1.5]"
-          : "fill-slate-950/80 stroke-slate-900 hover:fill-slate-800 hover:stroke-teal-700";
-      }
-    } else if (activeLayer === "climate") {
-      // High vulnerability coastal zones (Bonthe, Pujehun, Moyamba receives heavy maritime monsoons)
-      const criticalCoastalFloodZones = ["Bonthe", "Pujehun", "Moyamba", "Western Area Rural", "Port Loko"];
-      const isHighFloodRisk = criticalCoastalFloodZones.includes(item.name);
-
-      if (isHighFloodRisk) {
-        baseClass = isSelected
-          ? "fill-indigo-900/60 stroke-indigo-400 stroke-[1.8]"
-          : "fill-indigo-950/40 stroke-indigo-800/80 hover:fill-indigo-900/40 hover:stroke-indigo-500";
-      } else {
-        baseClass = isSelected
-          ? "fill-emerald-950/20 stroke-emerald-500 stroke-[1.5]"
-          : "fill-slate-950/90 stroke-slate-900 hover:fill-slate-900 hover:stroke-emerald-800/85";
-      }
+      const isRoadDensityHub = members.some(m => majorRoadHubs.includes(m));
+      baseClass = isRoadDensityHub
+        ? (isSelected
+            ? "fill-teal-900/60 stroke-teal-400 stroke-[1.4]"
+            : "fill-teal-950/30 stroke-teal-800 hover:fill-teal-900/40 hover:stroke-teal-500 stroke-[0.6]")
+        : (isSelected
+            ? "fill-slate-800 stroke-teal-500 stroke-[1.2]"
+            : "fill-slate-950/80 stroke-slate-800 hover:fill-slate-800 hover:stroke-teal-700 stroke-[0.6]");
+    } else {
+      const criticalCoastalFloodZones = ["Bonthe", "Pujehun", "Moyamba", "Western Area Rural", "Port Loko", "Kambia"];
+      const isHighFloodRisk = members.some(m => criticalCoastalFloodZones.includes(m));
+      baseClass = isHighFloodRisk
+        ? (isSelected
+            ? "fill-indigo-900/60 stroke-indigo-400 stroke-[1.4]"
+            : "fill-indigo-950/40 stroke-indigo-800/80 hover:fill-indigo-900/40 hover:stroke-indigo-500 stroke-[0.6]")
+        : (isSelected
+            ? "fill-emerald-950/20 stroke-emerald-500 stroke-[1.2]"
+            : "fill-slate-950/90 stroke-slate-800 hover:fill-slate-900 hover:stroke-emerald-800/85 stroke-[0.6]");
     }
 
     if (isHovered && !isSelected) {
-      baseClass += " scale-[1.01] drop-shadow-xl brightness-125 z-30 filter saturate-150";
+      baseClass += " brightness-125";
     }
 
     return baseClass;
@@ -409,112 +341,69 @@ export default function MapSection({
           {/* Real District Contour map SVG Viewport */}
           <div className="w-full flex items-center justify-center py-4 relative">
             <svg
-              viewBox="50 35 520 360"
-              className="w-full max-w-[500px] h-auto drop-shadow-3xl transition-all"
+              viewBox={`0 0 ${MAP_W} ${MAP_H}`}
+              className="w-full max-w-[520px] h-auto drop-shadow-3xl transition-all"
               id="sl-district-svg-map"
             >
               <defs>
-                {/* Visual styling gradients */}
                 <pattern id="grid-dots" width="15" height="15" patternUnits="userSpaceOnUse">
                   <circle cx="2" cy="2" r="0.5" fill="#1e293b" />
                 </pattern>
-                
-                <radialGradient id="ocean-glow" cx="50%" cy="50%" r="50%">
-                  <stop offset="0%" stopColor="#08101d" />
-                  <stop offset="100%" stopColor="#020617" />
-                </radialGradient>
               </defs>
 
-              {/* Background dots grid representing coordinates space */}
-              <rect width="600" height="420" fill="url(#grid-dots)" />
+              {/* Background dots grid */}
+              <rect width={MAP_W} height={MAP_H} fill="url(#grid-dots)" />
 
-              {/* Bathymetric Marine Ocean Shelf Waves Contours in Atlantic basin (southwest) */}
-              {!isLowBandwidth && (
-                <g className="opacity-15 stroke-teal-500/40 fill-none stroke-[0.45] pointer-events-none">
-                  <path d="M 40,250 C 60,260 80,290 85,340 C 90,390 140,400 160,420" />
-                  <path d="M 40,280 C 70,290 95,315 105,370 C 115,410 160,420 180,440" />
-                  <path d="M 40,310 C 80,320 110,340 125,395 C 135,430 180,435 200,460" />
-                  <path d="M 40,340 C 90,345 125,365 145,420 C 155,450 190,460 215,480" />
-                </g>
-              )}
-
-              {/* Latitude & Longitude Coordinate GIS reference gridlines */}
-              <g className="stroke-slate-900/60 stroke-[0.3] font-mono text-[5px] fill-slate-500 pointer-events-none select-none">
-                {/* Horizontal parallels lines */}
-                <line x1="50" y1="100" x2="570" y2="100" />
-                <text x="540" y="98">9°00'N</text>
-
-                <line x1="50" y1="200" x2="570" y2="200" />
-                <text x="540" y="198">8°00'N</text>
-
-                <line x1="50" y1="300" x2="570" y2="300" />
-                <text x="540" y="298">7°00'N</text>
-
-                {/* Vertical meridians lines */}
-                <line x1="150" y1="35" x2="150" y2="390" />
-                <text x="152" y="380" textAnchor="start">13°00'W</text>
-
-                <line x1="300" y1="35" x2="300" y2="390" />
-                <text x="302" y="380" textAnchor="start">12°00'W</text>
-
-                <line x1="450" y1="35" x2="450" y2="390" />
-                <text x="452" y="380" textAnchor="start">11°00'W</text>
-              </g>
-
-              {/* Real geographical district polygon layouts */}
+              {/* Real Sierra Leone district boundaries (geoBoundaries ADM2 via d3-geo) */}
               <g id="regions-layout">
-                {SIERRA_LEONE_DISTRICTS.map((item) => {
-                  const isSelected = selectedDistrict === item.name;
-                  const summary = districtSummaries.find(d => d.name === item.name);
-                  
-                  // Use precise contiguous coordinates for polygon path
-                  const geoPath = DISTRICT_PATHS[item.name]?.d;
-                  if (!geoPath) return null;
-
-                  const classColors = summary ? getThematicStyle(summary) : "";
+                {GEO.features.map((feature) => {
+                  const name = feature.properties.shapeName;
+                  const members = membersFor(name);
+                  const d = geoPathGen(feature as any) || "";
+                  const [cx0, cy0] = geoPathGen.centroid(feature as any);
+                  const classColors = getThematicStyle(name);
+                  const isSelected = members.includes(selectedDistrict || "");
+                  const hasCritical = indicators.some(
+                    (i) => members.includes(i.District) && i.Status === "Critical"
+                  );
 
                   return (
                     <g
-                      key={item.code}
+                      key={name}
                       className="group select-none"
-                      onClick={() => onSelectDistrict(isSelected ? null : item.name)}
-                      onMouseMove={(e) => handleMouseMove(e, item.name)}
+                      onClick={() => onSelectDistrict(isSelected ? null : name)}
+                      onMouseMove={(e) => handleMouseMove(e, name)}
                       onMouseLeave={handleMouseLeave}
                     >
-                      {/* Rugged real boundary contour path */}
-                      <path
-                        d={geoPath}
-                        className={`${classColors}`}
-                      />
+                      <path d={d} className={classColors} />
 
-                      {/* Live blinking critical beacon inside district centroid (hidden in low bandwidth) */}
-                      {!isLowBandwidth && indicators.some(i => i.District === item.name && i.Status === "Critical") && activeLayer === "yield" && (
+                      {/* Live blinking critical beacon at the polygon centroid */}
+                      {!isLowBandwidth && hasCritical && activeLayer === "yield" && (
                         <circle
-                          cx={DISTRICT_PATHS[item.name].labelX}
-                          cy={DISTRICT_PATHS[item.name].labelY}
-                          r="3.5"
+                          cx={cx0}
+                          cy={cy0}
+                          r="4"
                           className="fill-red-500 opacity-65 animate-ping pointer-events-none"
                         />
                       )}
 
-                      {/* District direct short text label placed strictly at centroid */}
+                      {/* District label at centroid */}
                       <text
-                        x={DISTRICT_PATHS[item.name].labelX}
-                        y={DISTRICT_PATHS[item.name].labelY + 1}
+                        x={cx0}
+                        y={cy0 + 1}
                         textAnchor="middle"
-                        className="fill-slate-300 font-mono hover:fill-white font-black text-[3.8px] pointer-events-none select-none tracking-widest text-[#00ffcc]"
+                        className="fill-slate-200 font-mono group-hover:fill-white font-black text-[8px] pointer-events-none select-none tracking-tight"
                       >
-                        {item.name.slice(0, 3).toUpperCase()}
+                        {name.length > 12 ? name.slice(0, 3).toUpperCase() : name}
                       </text>
                     </g>
                   );
                 })}
               </g>
 
-              {/* Territorial oceans and neighbor states reference text */}
-              <text x="80" y="340" className="fill-slate-500/80 font-mono font-bold text-[4.5px] tracking-wider pointer-events-none select-none italic">ATLANTIC BASIN</text>
-              <text x="350" y="48" className="fill-slate-500/50 font-mono font-bold text-[5px] tracking-widest pointer-events-none select-none">GUINEAN BORDER ZONE</text>
-              <text x="490" y="340" className="fill-slate-500/50 font-mono font-bold text-[5px] tracking-widest pointer-events-none select-none rotate-45">LIBERIA</text>
+              {/* Neighbour / ocean reference labels */}
+              <text x={MAP_W * 0.1} y={MAP_H * 0.72} className="fill-slate-500/70 font-mono font-bold text-[9px] tracking-wider pointer-events-none select-none italic">ATLANTIC OCEAN</text>
+              <text x={MAP_W * 0.6} y={MAP_H * 0.08} className="fill-slate-500/50 font-mono font-bold text-[9px] tracking-widest pointer-events-none select-none">GUINEA</text>
             </svg>
 
             {/* Custom Interactive Tooltip */}
