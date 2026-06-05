@@ -375,6 +375,19 @@ export async function submitSurveyResponse(
   }
 }
 
+// ---------- AI advisor (Supabase Edge Function) ----------
+export async function askAdvisor(payload: {
+  question: string;
+  currentDistrict?: string;
+  activeCommodity?: string;
+  activeMetric?: string;
+}): Promise<string> {
+  const { data, error } = await supabase.functions.invoke("advisor", { body: payload });
+  if (error) throw new Error(error.message);
+  if (data?.error) throw new Error(data.error);
+  return data?.text || "No insights available at this moment.";
+}
+
 // ---------- reports (scheduled M&E digests) ----------
 export interface MEReport {
   id: number;

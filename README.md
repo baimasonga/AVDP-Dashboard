@@ -46,6 +46,31 @@ Migrations live in `supabase/migrations/`.
    npm run lint     # typecheck (tsc --noEmit)
    ```
 
+## Deploy (Cloudflare Pages + Supabase)
+
+The recommended hosting is **Cloudflare Pages** for the static frontend plus a
+**Supabase Edge Function** for the AI advisor — no long-running server to operate.
+
+**Frontend → Cloudflare Pages**
+1. Connect the GitHub repo in the Cloudflare Pages dashboard.
+2. Build command: `npm run build:web` · Output directory: `dist`.
+3. Add environment variables: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`.
+4. SPA routing is handled by `public/_redirects` (`/* /index.html 200`).
+
+**AI advisor → Supabase Edge Function** (`supabase/functions/advisor`)
+- Deploy: `supabase functions deploy advisor` (already deployed in this project).
+- Set the key as a function secret to enable live Gemini:
+  `supabase secrets set GEMINI_API_KEY=...` (without it the advisor returns a
+  graceful fallback). `SUPABASE_URL` / `SUPABASE_ANON_KEY` are injected automatically.
+
+**After deploy**
+- In Supabase Auth settings, set the **Site URL / redirect URLs** to your Pages domain.
+- Enable **leaked-password protection** in Supabase Auth (recommended).
+- The daily report `pg_cron` job already runs on Supabase — nothing to host.
+
+> `server.ts` is only used for local dev (and optional self-hosting via
+> `npm run build` + `npm run start`); it is not part of the Cloudflare deployment.
+
 ## Roles (RBAC)
 
 | Role | Capabilities |
