@@ -5,7 +5,7 @@ import { supabase } from "./lib/supabase";
 import * as db from "./lib/db";
 import { getQueue, enqueue, removeFromQueue } from "./lib/offlineQueue";
 import AuthModal from "./components/AuthModal";
-import MapSection from "./components/MapSection";
+import GISMapSection from "./components/MapSection";
 import IndicatorTable from "./components/IndicatorTable";
 import AlertManager from "./components/AlertManager";
 import AdviserChat from "./components/AdviserChat";
@@ -17,8 +17,8 @@ import CropCalendar from "./components/CropCalendar";
 import ProactiveInsights from "./components/ProactiveInsights";
 import GenderAnalytics from "./components/GenderAnalytics";
 import ReportsPanel from "./components/ReportsPanel";
-import { 
-  Building2, Globe, Shield, RefreshCw, Radio, HardDrive, 
+import {
+  Building2, Globe, Shield, RefreshCw, Radio, HardDrive,
   Wifi, WifiOff, FileSpreadsheet, Layers, Bell, Bot, History,
   Info, TrendingUp, Sparkles, Sliders, LogIn, ChevronRight, AlertTriangle
 } from "lucide-react";
@@ -34,7 +34,7 @@ export default function App() {
 
   // Filtering Map Coordinates states
   const [selectedDistrict, setSelectedDistrict] = useState<string | null>(null);
-  
+
   // Bandwidth & Readability Configurations
   const [isLowBandwidth, setIsLowBandwidth] = useState<boolean>(false);
   const [isDarkMode, setIsDarkMode] = useState<boolean>(true); // default to true as per request
@@ -83,8 +83,8 @@ export default function App() {
   // Initialize tab + district from the URL so views are shareable/deep-linkable
   const initialParams = new URLSearchParams(window.location.search);
   const initialTab = initialParams.get("tab");
-  const [activeTab, setActiveTab] = useState<"analytics" | "markets" | "calendar">(
-    initialTab === "markets" || initialTab === "calendar" ? initialTab : "analytics"
+  const [activeTab, setActiveTab] = useState<"analytics" | "gis" | "markets" | "calendar">(
+    initialTab === "gis" || initialTab === "markets" || initialTab === "calendar" ? initialTab : "analytics"
   );
 
   // --- COMPREHENSIVE DATA SYNCHRONIZATION INTERFACE ---
@@ -329,7 +329,7 @@ export default function App() {
               {syncStatus.pendingChangesCount} pending sync
             </span>
           )}
-          <button 
+          <button
             onClick={syncWithServer}
             disabled={syncingIndicator}
             className="text-[10px] bg-slate-900/60 hover:bg-slate-900 border border-slate-700 hover:border-emerald-500/30 text-slate-300 px-2 py-1 rounded cursor-pointer transition-all flex items-center gap-1 font-medium disabled:opacity-40"
@@ -402,7 +402,21 @@ export default function App() {
           >
             📊 Strategic M&E Workspace
           </button>
-          
+
+          <button
+            onClick={() => setActiveTab("gis")}
+            className={`text-xs uppercase font-mono tracking-wider font-bold pb-3 px-4 border-b-2 transition-all cursor-pointer flex items-center gap-2 ${
+              activeTab === "gis"
+                ? "border-emerald-500 text-emerald-400 font-semibold"
+                : "border-transparent text-slate-400 hover:text-slate-200"
+            }`}
+          >
+            🧭 GIS Informatics
+            <span className="text-[9px] bg-emerald-950 border border-emerald-500/25 text-emerald-400 px-1.5 py-0.5 rounded uppercase font-bold tracking-normal leading-none">
+              Map
+            </span>
+          </button>
+
           <button
             onClick={() => setActiveTab("markets")}
             className={`text-xs uppercase font-mono tracking-wider font-bold pb-3 px-4 border-b-2 transition-all cursor-pointer flex items-center gap-2 ${
@@ -460,37 +474,26 @@ export default function App() {
             />
 
             {/* Dynamic Predictive Trend-line Outcomes Forecaster */}
-            <YieldForecasting 
+            <YieldForecasting
               indicators={indicators}
               selectedDistrict={selectedDistrict}
               isLowBandwidth={isLowBandwidth}
             />
 
-            {/* Dual Grid Layout: Interactive Geodata map section (Geographical accuracy hover) */}
+            {/* Decision-support advisor remains in the workspace; GIS now has its own portal tab. */}
             <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 relative overflow-visible">
-              
-              <div className="xl:col-span-8 overflow-visible">
-                <MapSection 
-                  indicators={indicators}
-                  selectedDistrict={selectedDistrict}
-                  onSelectDistrict={setSelectedDistrict}
-                  isLowBandwidth={isLowBandwidth}
-                />
-              </div>
-
-              <div className="xl:col-span-4 h-full flex flex-col justify-between">
-                <AdviserChat 
+              <div className="xl:col-span-12 h-full flex flex-col justify-between">
+                <AdviserChat
                   currentDistrict={selectedDistrict}
                   activeCommodity="Rice"
                   isLowBandwidth={isLowBandwidth}
                 />
               </div>
-
             </div>
 
             {/* Analytical spreadsheet metrics grid component */}
             <div id="analytical-table-mount">
-              <IndicatorTable 
+              <IndicatorTable
                 indicators={indicators}
                 currentUser={currentUser}
                 onUpdateIndicator={handleUpdateIndicator}
@@ -557,9 +560,18 @@ export default function App() {
           </>
         )}
 
+        {activeTab === "gis" && (
+          <GISMapSection
+            indicators={indicators}
+            selectedDistrict={selectedDistrict}
+            onSelectDistrict={setSelectedDistrict}
+            isLowBandwidth={isLowBandwidth}
+          />
+        )}
+
         {activeTab === "markets" && (
           <>
-            <MarketInformation 
+            <MarketInformation
               indicators={indicators}
               selectedDistrict={selectedDistrict}
               isLowBandwidth={isLowBandwidth}
@@ -567,17 +579,17 @@ export default function App() {
 
             {/* Cohesive, highly curated AVDP Value Chain Guidelines & Advisor board */}
             <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 relative overflow-visible">
-              
+
               <div className="xl:col-span-8 bg-[#0b1329] border border-slate-800 rounded-2xl p-6 relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
-                
+
                 <h4 className="text-sm font-bold text-slate-100 flex items-center gap-1.5 border-b border-slate-800 pb-3 mb-4">
                   <Layers className="w-4 h-4 text-emerald-400" />
                   IFAD-AVDP Quality Standards & Processing Directives
                 </h4>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs text-slate-300 leading-relaxed font-mono">
-                  
+
                   <div className="space-y-4">
                     <div className="p-3.5 bg-slate-950/40 border border-slate-900 rounded-xl space-y-1">
                       <span className="text-[10px] text-emerald-400 font-bold uppercase">Rice Quality Thresholds</span>
@@ -622,7 +634,7 @@ export default function App() {
               </div>
 
               <div className="xl:col-span-4 h-full flex flex-col justify-between">
-                <AdviserChat 
+                <AdviserChat
                   currentDistrict={selectedDistrict}
                   activeCommodity="General"
                   isLowBandwidth={isLowBandwidth}
@@ -634,7 +646,7 @@ export default function App() {
         )}
 
         {activeTab === "calendar" && (
-          <CropCalendar 
+          <CropCalendar
             selectedDistrict={selectedDistrict}
             isLowBandwidth={isLowBandwidth}
           />

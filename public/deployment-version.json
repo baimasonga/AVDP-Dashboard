@@ -1,0 +1,7 @@
+{
+  "deploymentTrigger": "cloudflare-rebuild",
+  "requestedAtUtc": "2026-06-05T13:05:00Z",
+  "mapVersion": "16-district-map-with-district-finder-sidebar",
+  "bugfix": "Renamed the imported GIS map component to GISMapSection so deployed bundles cannot reference an undefined MapSection symbol.",
+  "expectedUi": "GIS tab displays the new 16-district Sierra Leone SVG map and left-side district search/finder panel."
+}
