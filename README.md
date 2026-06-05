@@ -46,21 +46,23 @@ Migrations live in `supabase/migrations/`.
    npm run lint     # typecheck (tsc --noEmit)
    ```
 
-## Deploy (Cloudflare Pages + Supabase)
+## Deploy (Cloudflare + Supabase)
 
-The recommended hosting is **Cloudflare Pages** for the static frontend plus a
-**Supabase Edge Function** for the AI advisor — no long-running server to operate.
+The recommended hosting is **Cloudflare** for the static frontend (served from
+its global edge) plus a **Supabase Edge Function** for the AI advisor — no
+long-running server to operate.
 
-**Frontend → Cloudflare Pages**
-1. Connect the GitHub repo in the Cloudflare Pages dashboard.
+**Frontend → Cloudflare (Connect to Git)**
+1. Cloudflare dashboard → **Workers & Pages → Create → Connect to Git** →
+   select `baimasonga/AVDP-Dashboard`, branch `main`.
 2. Build command: `npm run build:web` · Output directory: `dist`.
 3. Add environment variables: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`.
-4. SPA routing is handled by `public/_redirects` (`/* /index.html 200`).
+4. Cloudflare rebuilds and deploys automatically on every push to `main`.
 
-Alternatively, deploy via the included GitHub Actions workflow
-(`.github/workflows/deploy.yml`), which builds and pushes to Cloudflare Pages on
-every merge to `main`. It needs these repository secrets: `CLOUDFLARE_API_TOKEN`,
-`CLOUDFLARE_ACCOUNT_ID`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`.
+> No `_redirects` file is needed: the app navigates via query parameters
+> (`?tab=…&district=…`) on a single `/` path, so static-asset serving of
+> `index.html` is sufficient. (A `/* /index.html 200` rule is rejected by
+> Cloudflare's static-assets deploy as a redirect loop.)
 
 **AI advisor → Supabase Edge Function** (`supabase/functions/advisor`)
 - Deploy: `supabase functions deploy advisor` (already deployed in this project).
