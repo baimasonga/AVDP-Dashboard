@@ -1,0 +1,5 @@
+{
+  "deploymentTrigger": "cloudflare-rebuild",
+  "requestedAtUtc": "2026-06-05T12:24:18Z",
+  "purpose": "Trigger Cloudflare Workers to rebuild from the GitHub main branch and provide a static URL to verify the deployed bundle includes the latest GIS map changes."
+}
