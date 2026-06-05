@@ -15,13 +15,20 @@ seasonal crop calendar, and strategic M&E workspace.
 - Hosted on Cloudflare Pages
 
 ## Architecture Notes
-- `src/App.tsx` — root component, tab switching (analytics / gis / markets / calendar)
-- `src/components/MapSection.tsx` — GIS map: GeoJSON-driven district polygons
-  (Web Mercator projection), thematic overlays, value-chain search, collapsible panel
+- `src/App.tsx` — root component, tab switching (analytics / gis / markets / calendar / settings)
+- `src/components/GisWorkspace.tsx` — GIS tab shell; toggles between the
+  "Activity Sites" locator (`ValueChainMap`) and the "Thematic Map" (`MapSection`)
+- `src/components/ValueChainMap.tsx` — AVDP activity-site locator: KPI strip,
+  value-chain filters, searchable site list, plotted pin map (replaced ValueChainLocator)
+- `src/components/MapSection.tsx` — thematic GIS map: GeoJSON-driven district polygons
+  (Web Mercator projection), thematic overlays, collapsible Telemetry/Radar panel
 - `src/data/sleDistricts.geo.json` — real boundaries for all 16 districts
+- `src/data/avdpSites.ts` — AVDP activity sites (IVS, plantations, roads, processing, FBOs/VSLAs)
+- `src/data/avdpProject.ts` — real AVDP project facts/targets for headline KPIs
 - `src/data.ts` — district summaries and indicator dataset
 - `src/types.ts` — Indicator / district types with Commodity field
-- Value chains: Rice, Cocoa, Coffee, Oil Palm, General
+- `supabase/bootstrap.sql` — one-shot script to provision a Supabase project
+- Value chains: Rice, Oil Palm, Cocoa, Vegetables (per AVDP)
 
 ## Deployment
 - Code is pushed to GitHub (`baimasonga/AVDP-Dashboard`, `main` branch), which
