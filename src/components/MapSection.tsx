@@ -1,12 +1,10 @@
 import React, { useState, useMemo } from "react";
-import * as d3 from "d3";
 import { SIERRA_LEONE_DISTRICTS, getDistrictSummaries } from "../data";
 import { Indicator, DistrictMetricSummary } from "../types";
-import sleGeoRaw from "../sleDistricts.geo.json";
 import { 
   MapPin, TrendingUp, HelpCircle, Eye, Info, Layers, RefreshCw, 
   Compass, Navigation, Route, AlertTriangle, ShieldAlert, CheckCircle2,
-  Calendar, Award, Server, Activity, GitCompare
+  Calendar, Award, Server, Activity, GitCompare, Search, LocateFixed
 } from "lucide-react";
 
 interface MapSectionProps {
@@ -16,26 +14,45 @@ interface MapSectionProps {
   isLowBandwidth: boolean;
 }
 
-// Real Sierra Leone district boundaries (geoBoundaries ADM2), rendered via d3-geo.
-// The dataset uses the pre-2017 14-district division, so the two newer districts
-// are folded into their parent ADM2 polygon for map aggregation/selection.
-type GeoFeature = { type: "Feature"; properties: { shapeName: string }; geometry: any };
-const GEO = sleGeoRaw as { type: "FeatureCollection"; features: GeoFeature[] };
+const MAP_W = 760;
+const MAP_H = 620;
 
-const MAP_W = 600;
-const MAP_H = 470;
-const projection = d3.geoIdentity().reflectY(true).fitExtent(
-  [[14, 14], [MAP_W - 14, MAP_H - 14]],
-  GEO as any
-);
-const geoPathGen = d3.geoPath(projection as any);
-
-// Post-2017 districts folded into the parent ADM2 polygon present in the data.
-const POLY_MEMBERS: Record<string, string[]> = {
-  Koinadugu: ["Koinadugu", "Falaba"],
-  Bombali: ["Bombali", "Karene"],
+type DistrictMapShape = {
+  name: string;
+  points: string;
+  label: { x: number; y: number; size?: number; lines?: string[] };
+  provinceColor: string;
 };
-const membersFor = (name: string): string[] => POLY_MEMBERS[name] || [name];
+
+const PROVINCE_COLORS = {
+  eastern: "#b8c77d",
+  northern: "#e6b64d",
+  southern: "#f1ea62",
+  northWest: "#f7a77f",
+  western: "#e4b247",
+  highlands: "#f4a783",
+};
+
+// 2017+ sixteen-district Sierra Leone district layout, redrawn as an in-app
+// vector so AVDP overlays can stay interactive while matching the Mappr layout.
+const DISTRICT_MAP_SHAPES: DistrictMapShape[] = [
+  { name: "Kambia", points: "20,205 52,170 112,178 154,132 215,142 224,205 182,238 105,242 62,272 18,250", label: { x: 106, y: 213, size: 22 }, provinceColor: PROVINCE_COLORS.eastern },
+  { name: "Karene", points: "180,44 300,26 333,58 414,36 414,135 350,142 312,186 245,168 225,205 206,144 154,132", label: { x: 282, y: 116, size: 28 }, provinceColor: PROVINCE_COLORS.southern },
+  { name: "Koinadugu", points: "414,18 520,10 542,80 616,82 612,178 548,190 520,256 458,220 434,142 414,135", label: { x: 492, y: 112, size: 26 }, provinceColor: PROVINCE_COLORS.highlands },
+  { name: "Falaba", points: "542,10 710,10 736,76 716,176 674,240 612,230 612,178 616,82", label: { x: 654, y: 136, size: 30 }, provinceColor: PROVINCE_COLORS.northern },
+  { name: "Bombali", points: "245,168 312,186 350,142 434,142 458,220 426,296 350,312 292,270 222,288 188,238 225,205", label: { x: 342, y: 237, size: 28 }, provinceColor: PROVINCE_COLORS.northern },
+  { name: "Port Loko", points: "62,272 105,242 188,238 222,288 292,270 300,330 246,355 158,332 72,356 18,326", label: { x: 142, y: 314, size: 24 }, provinceColor: PROVINCE_COLORS.highlands },
+  { name: "Western Area Urban", points: "18,340 54,324 72,356 48,386 18,374", label: { x: 28, y: 356, size: 10, lines: ["Western", "Urban"] }, provinceColor: "#ffffff" },
+  { name: "Western Area Rural", points: "20,376 48,386 72,356 122,366 108,432 44,438", label: { x: 66, y: 404, size: 15, lines: ["Western", "Rural"] }, provinceColor: PROVINCE_COLORS.western },
+  { name: "Tonkolili", points: "300,330 292,270 350,312 426,296 470,330 466,405 390,430 306,390 246,355", label: { x: 385, y: 356, size: 34 }, provinceColor: PROVINCE_COLORS.eastern },
+  { name: "Kono", points: "520,256 548,190 612,230 674,240 730,286 712,360 646,396 560,380 502,328", label: { x: 622, y: 318, size: 46 }, provinceColor: PROVINCE_COLORS.southern },
+  { name: "Moyamba", points: "108,432 122,366 246,355 306,390 338,458 270,508 130,500 56,476", label: { x: 200, y: 456, size: 34 }, provinceColor: PROVINCE_COLORS.southern },
+  { name: "Bo", points: "338,458 306,390 390,430 466,405 500,462 470,548 350,548 270,508", label: { x: 410, y: 494, size: 44 }, provinceColor: PROVINCE_COLORS.northern },
+  { name: "Kenema", points: "500,462 466,405 502,328 560,380 646,396 640,518 570,578 470,548", label: { x: 542, y: 505, size: 23 }, provinceColor: PROVINCE_COLORS.highlands },
+  { name: "Kailahun", points: "646,396 712,360 738,410 710,530 640,518", label: { x: 674, y: 462, size: 24 }, provinceColor: PROVINCE_COLORS.eastern },
+  { name: "Bonthe", points: "56,476 130,500 270,508 350,548 326,604 178,580 70,535", label: { x: 246, y: 546, size: 30 }, provinceColor: PROVINCE_COLORS.eastern },
+  { name: "Pujehun", points: "350,548 470,548 570,578 510,612 374,612 326,604", label: { x: 442, y: 590, size: 30 }, provinceColor: PROVINCE_COLORS.southern },
+];
 
 type GISLayer = "yield" | "infra" | "climate";
 
@@ -48,11 +65,55 @@ export default function MapSection({
   const [hoveredDistrict, setHoveredDistrict] = useState<DistrictMetricSummary | null>(null);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
   const [activeLayer, setActiveLayer] = useState<GISLayer>("yield");
+  const [districtSearchQuery, setDistrictSearchQuery] = useState("");
 
   // Calculate live summaries based on current state of indicators
   const districtSummaries = useMemo(() => {
     return getDistrictSummaries(indicators);
   }, [indicators]);
+
+  const filteredDistrictResults = useMemo(() => {
+    const query = districtSearchQuery.trim().toLowerCase();
+    const selectedGeo = SIERRA_LEONE_DISTRICTS.find(d => d.name === selectedDistrict);
+
+    return districtSummaries
+      .map(summary => {
+        const geo = SIERRA_LEONE_DISTRICTS.find(d => d.name === summary.name);
+        const districtIndicators = indicators.filter(ind => ind.District === summary.name);
+        const criticalCount = districtIndicators.filter(ind => ind.Status === "Critical").length;
+        const avgProgress = districtIndicators.length > 0
+          ? Math.round(districtIndicators.reduce((sum, ind) => sum + ind.Progress, 0) / districtIndicators.length)
+          : Math.round(summary.historicalTrend.at(-1)?.progress || 0);
+        const distance = selectedGeo && geo
+          ? Math.max(1, Math.round(Math.hypot(selectedGeo.x - geo.x, selectedGeo.y - geo.y) * 3.2))
+          : Math.max(2, Math.round(((geo?.x || 10) + (geo?.y || 10)) / 4));
+
+        return { ...summary, criticalCount, avgProgress, distance };
+      })
+      .filter(summary => {
+        if (!query) return true;
+        return [summary.name, summary.code, summary.region]
+          .some(value => value.toLowerCase().includes(query));
+      })
+      .sort((a, b) => {
+        if (selectedDistrict) return a.distance - b.distance;
+        if (b.criticalCount !== a.criticalCount) return b.criticalCount - a.criticalCount;
+        return a.name.localeCompare(b.name);
+      });
+  }, [districtSearchQuery, districtSummaries, indicators, selectedDistrict]);
+
+  const handleDistrictSearch = () => {
+    const firstMatch = filteredDistrictResults[0];
+    if (firstMatch) {
+      onSelectDistrict(firstMatch.name);
+    }
+  };
+
+  const handleUseMyLocation = () => {
+    const fallbackDistrict = "Western Area Urban";
+    setDistrictSearchQuery(fallbackDistrict);
+    onSelectDistrict(fallbackDistrict);
+  };
 
   const [rightPanelTab, setRightPanelTab] = useState<"telemetry" | "compare">("telemetry");
   const [districtAlpha, setDistrictAlpha] = useState<string>("Bo");
@@ -190,61 +251,44 @@ export default function MapSection({
     setHoveredDistrict(null);
   };
 
-  // Advanced GIS Thematic layer styling, keyed by ADM2 polygon name.
-  const getThematicStyle = (name: string) => {
-    const members = membersFor(name);
-    const inDist = (i: Indicator) => members.includes(i.District);
-    const isSelected = members.includes(selectedDistrict || "");
-    const isHovered = hoveredDistrict ? members.includes(hoveredDistrict.name) : false;
+  // Advanced GIS thematic styling keyed by the full 16-district AVDP activity map.
+  const getDistrictMapPresentation = (name: string, baseFill: string) => {
+    const districtIndicators = indicators.filter(i => i.District === name);
+    const isSelected = selectedDistrict === name;
+    const isHovered = hoveredDistrict?.name === name;
 
-    let baseClass = "transition-all duration-300 stroke-[0.6] cursor-pointer fill-slate-900 stroke-slate-700";
+    const criticalCount = districtIndicators.filter(i => i.Status === "Critical").length;
+    const onTrackCount = districtIndicators.filter(i => i.Status === "On Track").length;
+    const ratio = districtIndicators.length > 0 ? onTrackCount / districtIndicators.length : 0.8;
 
-    if (activeLayer === "yield") {
-      const countCritical = indicators.filter(i => inDist(i) && i.Status === "Critical").length;
-      const countOnTrack = indicators.filter(i => inDist(i) && i.Status === "On Track").length;
-      const total = indicators.filter(inDist).length;
-      const ratio = total > 0 ? countOnTrack / total : 0.8;
+    let fill = baseFill;
+    let stroke = criticalCount > 0 ? "#dc2626" : ratio < 0.6 ? "#d97706" : "#111827";
+    let strokeWidth = isSelected ? 4 : criticalCount > 0 ? 2.5 : 1.4;
+    let opacity = 0.96;
 
-      if (countCritical >= 2) {
-        baseClass = isSelected
-          ? "fill-red-900/60 stroke-red-400 stroke-[1.4]"
-          : "fill-red-950/40 stroke-red-700 hover:fill-red-900/40 hover:stroke-red-500 stroke-[0.6]";
-      } else if (ratio < 0.6) {
-        baseClass = isSelected
-          ? "fill-amber-900/60 stroke-amber-400 stroke-[1.4]"
-          : "fill-amber-950/40 stroke-amber-700 hover:fill-amber-900/40 hover:stroke-amber-500 stroke-[0.6]";
-      } else {
-        baseClass = isSelected
-          ? "fill-emerald-900/70 stroke-emerald-400 stroke-[1.4]"
-          : "fill-slate-900 hover:fill-emerald-950/50 stroke-slate-700 hover:stroke-emerald-600 stroke-[0.6]";
-      }
-    } else if (activeLayer === "infra") {
-      const majorRoadHubs = ["Kenema", "Moyamba", "Port Loko", "Bo", "Tonkolili", "Kambia"];
-      const isRoadDensityHub = members.some(m => majorRoadHubs.includes(m));
-      baseClass = isRoadDensityHub
-        ? (isSelected
-            ? "fill-teal-900/60 stroke-teal-400 stroke-[1.4]"
-            : "fill-teal-950/30 stroke-teal-800 hover:fill-teal-900/40 hover:stroke-teal-500 stroke-[0.6]")
-        : (isSelected
-            ? "fill-slate-800 stroke-teal-500 stroke-[1.2]"
-            : "fill-slate-950/80 stroke-slate-800 hover:fill-slate-800 hover:stroke-teal-700 stroke-[0.6]");
-    } else {
-      const criticalCoastalFloodZones = ["Bonthe", "Pujehun", "Moyamba", "Western Area Rural", "Port Loko", "Kambia"];
-      const isHighFloodRisk = members.some(m => criticalCoastalFloodZones.includes(m));
-      baseClass = isHighFloodRisk
-        ? (isSelected
-            ? "fill-indigo-900/60 stroke-indigo-400 stroke-[1.4]"
-            : "fill-indigo-950/40 stroke-indigo-800/80 hover:fill-indigo-900/40 hover:stroke-indigo-500 stroke-[0.6]")
-        : (isSelected
-            ? "fill-emerald-950/20 stroke-emerald-500 stroke-[1.2]"
-            : "fill-slate-950/90 stroke-slate-800 hover:fill-slate-900 hover:stroke-emerald-800/85 stroke-[0.6]");
+    if (activeLayer === "infra") {
+      const summary = districtSummaries.find(d => d.name === name);
+      const isRoadHub = (summary?.roadsRehabbed || 0) >= 20 || ["Kenema", "Moyamba", "Port Loko", "Bo", "Tonkolili", "Kambia"].includes(name);
+      fill = isRoadHub ? "#7dd3fc" : "#dbeafe";
+      stroke = isRoadHub ? "#0891b2" : "#64748b";
+      strokeWidth = isSelected ? 4 : isRoadHub ? 2.4 : 1.2;
+    } else if (activeLayer === "climate") {
+      const coastalFloodZones = ["Bonthe", "Pujehun", "Moyamba", "Western Area Rural", "Western Area Urban", "Port Loko", "Kambia"];
+      const isHighFloodRisk = coastalFloodZones.includes(name);
+      fill = isHighFloodRisk ? "#c4b5fd" : "#bbf7d0";
+      stroke = isHighFloodRisk ? "#7c3aed" : "#059669";
+      strokeWidth = isSelected ? 4 : isHighFloodRisk ? 2.4 : 1.2;
     }
 
     if (isHovered && !isSelected) {
-      baseClass += " brightness-125";
+      opacity = 1;
+      strokeWidth += 1;
     }
 
-    return baseClass;
+    return {
+      className: "transition-all duration-300 cursor-pointer",
+      style: { fill, stroke, strokeWidth, opacity } as React.CSSProperties,
+    };
   };
 
   // Detailed layer info
@@ -252,7 +296,7 @@ export default function MapSection({
     switch (activeLayer) {
       case "yield":
         return {
-          title: "Thematic Map: Average Smallholder Yield Target Index",
+          title: "2017+ District Map: AVDP Yield & Delivery Activity Index",
           indicatorName: "On-site Target Performance",
           legend: [
             { label: "Optimal Output (>130% target)", color: "bg-emerald-500" },
@@ -297,7 +341,7 @@ export default function MapSection({
             </span>
           </div>
           <p className="text-xs text-slate-400 mt-0.5">
-            Real contiguous district coordinates, bathymetric maritime shelf wave contours, and regional agricultural compliance overlays.
+            Sixteen-district Sierra Leone activity map aligned to the current province layout, with live AVDP yield, roads, climate, and processing overlays.
           </p>
         </div>
 
@@ -321,7 +365,7 @@ export default function MapSection({
         <div className="xl:col-span-8 bg-[#020617] rounded-2xl border border-slate-900 p-4 flex flex-col justify-between min-h-[600px] relative overflow-hidden">
           
           {/* Subtle GIS Topographic Scale Rule & Navigation Overlay */}
-          <div className="absolute top-3 left-3 z-10 flex flex-col gap-1.5 pointer-events-none font-mono text-[9px] text-slate-400 bg-slate-950/80 border border-slate-920/40 p-2.5 rounded-lg">
+          <div className="absolute top-3 left-3 xl:left-[360px] z-10 flex flex-col gap-1.5 pointer-events-none font-mono text-[9px] text-slate-400 bg-slate-950/80 border border-slate-920/40 p-2.5 rounded-lg">
             <div className="flex items-center gap-1">
               <Navigation className="w-3 h-3 text-emerald-400" />
               <span>BEARING: <strong>WGS 84 / UTM ZONE 29N</strong></span>
@@ -338,8 +382,101 @@ export default function MapSection({
             </div>
           )}
 
-          {/* Real District Contour map SVG Viewport */}
-          <div className="w-full flex items-center justify-center py-4 relative">
+          {/* Real District Contour map SVG Viewport with district finder sidebar */}
+          <div className="w-full flex flex-col xl:flex-row items-stretch xl:items-center justify-center gap-4 py-4 relative xl:pl-[352px]">
+            <aside className="xl:absolute xl:left-4 xl:top-4 xl:bottom-4 xl:w-[320px] z-20 bg-white text-slate-950 border border-slate-200 rounded-xl shadow-2xl overflow-hidden flex flex-col" aria-label="Find a Sierra Leone district">
+              <div className="p-4 border-b border-slate-200 bg-white">
+                <h4 className="text-lg font-black tracking-tight text-slate-950">Find an AVDP District</h4>
+                <label htmlFor="gis-district-search" className="block mt-3 mb-1.5 text-[11px] font-bold text-slate-700">
+                  Search by District, Code, or Region
+                </label>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <input
+                      id="gis-district-search"
+                      value={districtSearchQuery}
+                      onChange={(e) => setDistrictSearchQuery(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter") handleDistrictSearch(); }}
+                      placeholder="Bo, Eastern, SL-KN"
+                      className="w-full h-10 border border-slate-300 bg-white pl-3 pr-9 text-xs text-slate-950 outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+                    />
+                    <Search className="absolute right-2.5 top-2.5 w-4 h-4 text-slate-600" />
+                  </div>
+                  <button
+                    onClick={handleDistrictSearch}
+                    className="h-10 bg-red-700 hover:bg-red-800 text-white px-4 text-xs font-bold transition-colors"
+                  >
+                    Search
+                  </button>
+                </div>
+                <button
+                  onClick={handleUseMyLocation}
+                  className="mt-2 text-[11px] font-bold underline text-slate-800 hover:text-emerald-700 flex items-center gap-1"
+                >
+                  <LocateFixed className="w-3 h-3" />
+                  Use My Location
+                </button>
+              </div>
+
+              <div className="px-4 py-3 border-b border-slate-200 bg-slate-50 flex items-center justify-between gap-3">
+                <strong className="text-xs text-slate-950">
+                  {filteredDistrictResults.length} results {districtSearchQuery.trim() ? `for “${districtSearchQuery.trim()}”` : "across Sierra Leone"}
+                </strong>
+                <button
+                  onClick={() => setActiveLayer(activeLayer === "yield" ? "infra" : activeLayer === "infra" ? "climate" : "yield")}
+                  className="text-[11px] font-semibold text-slate-700 hover:text-slate-950 flex items-center gap-1 whitespace-nowrap"
+                >
+                  Filter By
+                  <span className="text-slate-500">⌄</span>
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto bg-white divide-y divide-slate-100 max-h-[420px] xl:max-h-none">
+                {filteredDistrictResults.map((district, idx) => {
+                  const statusLabel = district.criticalCount > 0 ? `${district.criticalCount} critical alerts` : "Open - On track";
+                  const statusClass = district.criticalCount > 0 ? "text-red-700" : "text-emerald-700";
+
+                  return (
+                    <article
+                      key={district.name}
+                      className={`grid grid-cols-[24px_1fr_auto] gap-3 px-4 py-4 text-xs transition-colors ${
+                        selectedDistrict === district.name ? "bg-emerald-50" : "hover:bg-slate-50"
+                      }`}
+                    >
+                      <span className="font-black text-slate-900 text-right">{idx + 1}</span>
+                      <div className="min-w-0">
+                        <button
+                          onClick={() => onSelectDistrict(district.name)}
+                          className="font-black underline text-slate-950 hover:text-emerald-700 text-left leading-tight"
+                        >
+                          {district.name} District
+                        </button>
+                        <p className={`mt-2 font-bold ${statusClass}`}>{statusLabel}</p>
+                        <p className="mt-3 leading-snug text-slate-800">
+                          {district.code} · {district.region} Region<br />
+                          {district.avgProgress}% avg progress · {district.roadsRehabbed} km roads
+                        </p>
+                        <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 font-bold">
+                          <button onClick={() => { onSelectDistrict(district.name); setRightPanelTab("telemetry"); }} className="underline text-slate-800 hover:text-emerald-700">
+                            View Details
+                          </button>
+                          <button onClick={() => onSelectDistrict(district.name)} className="underline text-slate-800 hover:text-emerald-700">
+                            Focus Map
+                          </button>
+                        </div>
+                      </div>
+                      <span className="font-black text-slate-900 whitespace-nowrap">{district.distance} km</span>
+                    </article>
+                  );
+                })}
+
+                {filteredDistrictResults.length === 0 && (
+                  <div className="p-5 text-sm text-slate-700">
+                    No districts matched that search. Try a district name like <strong>Kenema</strong>, a region like <strong>Eastern</strong>, or a code like <strong>SL-KN</strong>.
+                  </div>
+                )}
+              </div>
+            </aside>
             <svg
               viewBox={`0 0 ${MAP_W} ${MAP_H}`}
               className="w-full max-w-[860px] h-auto drop-shadow-3xl transition-all"
@@ -351,21 +488,19 @@ export default function MapSection({
                 </pattern>
               </defs>
 
-              {/* Background dots grid */}
-              <rect width={MAP_W} height={MAP_H} fill="url(#grid-dots)" />
+              {/* Reference-map white canvas */}
+              <rect width={MAP_W} height={MAP_H} fill="#ffffff" />
 
-              {/* Real Sierra Leone district boundaries (geoBoundaries ADM2 via d3-geo) */}
+              {/* Redrawn 2017+ Sierra Leone 16-district map with live AVDP activity overlays */}
               <g id="regions-layout">
-                {GEO.features.map((feature) => {
-                  const name = feature.properties.shapeName;
-                  const members = membersFor(name);
-                  const d = geoPathGen(feature as any) || "";
-                  const [cx0, cy0] = geoPathGen.centroid(feature as any);
-                  const classColors = getThematicStyle(name);
-                  const isSelected = members.includes(selectedDistrict || "");
+                {DISTRICT_MAP_SHAPES.map((district) => {
+                  const name = district.name;
+                  const isSelected = selectedDistrict === name;
                   const hasCritical = indicators.some(
-                    (i) => members.includes(i.District) && i.Status === "Critical"
+                    (i) => i.District === name && i.Status === "Critical"
                   );
+                  const presentation = getDistrictMapPresentation(name, district.provinceColor);
+                  const labelLines = district.label.lines || [name.replace("Western Area ", "Western ")];
 
                   return (
                     <g
@@ -375,26 +510,39 @@ export default function MapSection({
                       onMouseMove={(e) => handleMouseMove(e, name)}
                       onMouseLeave={handleMouseLeave}
                     >
-                      <path d={d} className={classColors} />
+                      <polygon
+                        points={district.points}
+                        className={presentation.className}
+                        style={presentation.style}
+                      />
 
-                      {/* Live blinking critical beacon at the polygon centroid */}
+                      {/* Live blinking critical beacon at the district label anchor */}
                       {!isLowBandwidth && hasCritical && activeLayer === "yield" && (
                         <circle
-                          cx={cx0}
-                          cy={cy0}
-                          r="4"
+                          cx={district.label.x}
+                          cy={district.label.y - 16}
+                          r="5"
                           className="fill-red-500 opacity-65 animate-ping pointer-events-none"
                         />
                       )}
 
-                      {/* District label at centroid */}
+                      {/* District label styled like the new reference map */}
                       <text
-                        x={cx0}
-                        y={cy0 + 1}
+                        x={district.label.x}
+                        y={district.label.y}
                         textAnchor="middle"
-                        className="fill-slate-200 font-mono group-hover:fill-white font-black text-[8px] pointer-events-none select-none tracking-tight"
+                        className="fill-black font-serif italic group-hover:fill-slate-950 font-medium pointer-events-none select-none"
+                        style={{ fontSize: district.label.size || 24 }}
                       >
-                        {name.length > 12 ? name.slice(0, 3).toUpperCase() : name}
+                        {labelLines.map((line, idx) => (
+                          <tspan
+                            key={`${name}-${line}`}
+                            x={district.label.x}
+                            dy={idx === 0 ? 0 : (district.label.size || 24) * 0.95}
+                          >
+                            {line}
+                          </tspan>
+                        ))}
                       </text>
                     </g>
                   );
@@ -402,8 +550,9 @@ export default function MapSection({
               </g>
 
               {/* Neighbour / ocean reference labels */}
-              <text x={MAP_W * 0.1} y={MAP_H * 0.72} className="fill-slate-500/70 font-mono font-bold text-[9px] tracking-wider pointer-events-none select-none italic">ATLANTIC OCEAN</text>
-              <text x={MAP_W * 0.6} y={MAP_H * 0.08} className="fill-slate-500/50 font-mono font-bold text-[9px] tracking-widest pointer-events-none select-none">GUINEA</text>
+              <text x={MAP_W * 0.08} y={MAP_H * 0.78} className="fill-slate-500/70 font-mono font-bold text-[11px] tracking-wider pointer-events-none select-none italic">ATLANTIC OCEAN</text>
+              <text x={MAP_W * 0.64} y={MAP_H * 0.06} className="fill-slate-500/60 font-mono font-bold text-[11px] tracking-widest pointer-events-none select-none">GUINEA</text>
+              <text x={MAP_W * 0.78} y={MAP_H * 0.92} className="fill-slate-500/60 font-mono font-bold text-[11px] tracking-widest pointer-events-none select-none">LIBERIA</text>
             </svg>
 
             {/* Custom Interactive Tooltip */}
@@ -627,7 +776,7 @@ export default function MapSection({
                   ) : (
                     <div className="space-y-2.5 pt-2 text-xs font-mono text-slate-500">
                       <p className="text-[11px] leading-relaxed italic">
-                        Note: Complete GIS boundaries are compiled based on IFAD G-100 indicators schemas, integrating land use buffers and regional direct offtaker quotas verification.
+                        Note: The GIS lens now uses the current 16-district Sierra Leone layout so Falaba and Karene are tracked as independent AVDP activity areas alongside district yield, road, climate, and market-access indicators.
                       </p>
                     </div>
                   )}
