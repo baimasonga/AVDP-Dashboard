@@ -294,7 +294,7 @@ export default function MapSection({
       <div className="flex flex-col xl:flex-row">
 
         {/* ════ LEFT / MAP AREA ════ */}
-        <div className="flex-1 relative bg-[#020617] min-h-[600px] flex flex-col">
+        <div className="flex-1 relative bg-[#020617] flex flex-col">
 
           {/* Search bar — compact, floats over map */}
           <div className="absolute top-4 left-4 z-30 w-72">
@@ -371,11 +371,10 @@ export default function MapSection({
           </div>
 
           {/* ── SVG Map ── */}
-          <div className="relative flex-1 flex items-center justify-center py-6 px-4">
+          <div className="relative flex-1 w-full flex items-start justify-center p-2">
             <svg
               viewBox={`0 0 ${MAP_W} ${MAP_H}`}
-              className="w-full h-full"
-              style={{ maxHeight: "72vh" }}
+              style={{ display: "block", width: "100%", maxHeight: "calc(100vh - 260px)", height: "auto" }}
               preserveAspectRatio="xMidYMid meet"
             >
               <defs>
