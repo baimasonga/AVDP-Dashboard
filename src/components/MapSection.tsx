@@ -6,7 +6,7 @@ import sleGeoRaw from "../sleDistricts.geo.json";
 import { 
   MapPin, TrendingUp, HelpCircle, Eye, Info, Layers, RefreshCw, 
   Compass, Navigation, Route, AlertTriangle, ShieldAlert, CheckCircle2,
-  Calendar, Award, Server, Activity, GitCompare
+  Calendar, Award, Server, Activity, GitCompare, Search, LocateFixed
 } from "lucide-react";
 
 interface MapSectionProps {
@@ -48,11 +48,55 @@ export default function MapSection({
   const [hoveredDistrict, setHoveredDistrict] = useState<DistrictMetricSummary | null>(null);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
   const [activeLayer, setActiveLayer] = useState<GISLayer>("yield");
+  const [districtSearchQuery, setDistrictSearchQuery] = useState("");
 
   // Calculate live summaries based on current state of indicators
   const districtSummaries = useMemo(() => {
     return getDistrictSummaries(indicators);
   }, [indicators]);
+
+  const filteredDistrictResults = useMemo(() => {
+    const query = districtSearchQuery.trim().toLowerCase();
+    const selectedGeo = SIERRA_LEONE_DISTRICTS.find(d => d.name === selectedDistrict);
+
+    return districtSummaries
+      .map(summary => {
+        const geo = SIERRA_LEONE_DISTRICTS.find(d => d.name === summary.name);
+        const districtIndicators = indicators.filter(ind => ind.District === summary.name);
+        const criticalCount = districtIndicators.filter(ind => ind.Status === "Critical").length;
+        const avgProgress = districtIndicators.length > 0
+          ? Math.round(districtIndicators.reduce((sum, ind) => sum + ind.Progress, 0) / districtIndicators.length)
+          : Math.round(summary.historicalTrend.at(-1)?.progress || 0);
+        const distance = selectedGeo && geo
+          ? Math.max(1, Math.round(Math.hypot(selectedGeo.x - geo.x, selectedGeo.y - geo.y) * 3.2))
+          : Math.max(2, Math.round(((geo?.x || 10) + (geo?.y || 10)) / 4));
+
+        return { ...summary, criticalCount, avgProgress, distance };
+      })
+      .filter(summary => {
+        if (!query) return true;
+        return [summary.name, summary.code, summary.region]
+          .some(value => value.toLowerCase().includes(query));
+      })
+      .sort((a, b) => {
+        if (selectedDistrict) return a.distance - b.distance;
+        if (b.criticalCount !== a.criticalCount) return b.criticalCount - a.criticalCount;
+        return a.name.localeCompare(b.name);
+      });
+  }, [districtSearchQuery, districtSummaries, indicators, selectedDistrict]);
+
+  const handleDistrictSearch = () => {
+    const firstMatch = filteredDistrictResults[0];
+    if (firstMatch) {
+      onSelectDistrict(firstMatch.name);
+    }
+  };
+
+  const handleUseMyLocation = () => {
+    const fallbackDistrict = "Western Area Urban";
+    setDistrictSearchQuery(fallbackDistrict);
+    onSelectDistrict(fallbackDistrict);
+  };
 
   const [rightPanelTab, setRightPanelTab] = useState<"telemetry" | "compare">("telemetry");
   const [districtAlpha, setDistrictAlpha] = useState<string>("Bo");
@@ -321,7 +365,7 @@ export default function MapSection({
         <div className="xl:col-span-8 bg-[#020617] rounded-2xl border border-slate-900 p-4 flex flex-col justify-between min-h-[440px] relative overflow-hidden">
           
           {/* Subtle GIS Topographic Scale Rule & Navigation Overlay */}
-          <div className="absolute top-3 left-3 z-10 flex flex-col gap-1.5 pointer-events-none font-mono text-[9px] text-slate-400 bg-slate-950/80 border border-slate-920/40 p-2.5 rounded-lg">
+          <div className="absolute top-3 left-3 xl:left-[360px] z-10 flex flex-col gap-1.5 pointer-events-none font-mono text-[9px] text-slate-400 bg-slate-950/80 border border-slate-920/40 p-2.5 rounded-lg">
             <div className="flex items-center gap-1">
               <Navigation className="w-3 h-3 text-emerald-400" />
               <span>BEARING: <strong>WGS 84 / UTM ZONE 29N</strong></span>
@@ -338,8 +382,101 @@ export default function MapSection({
             </div>
           )}
 
-          {/* Real District Contour map SVG Viewport */}
-          <div className="w-full flex items-center justify-center py-4 relative">
+          {/* Real District Contour map SVG Viewport with district finder sidebar */}
+          <div className="w-full flex flex-col xl:flex-row items-stretch xl:items-center justify-center gap-4 py-4 relative xl:pl-[352px]">
+            <aside className="xl:absolute xl:left-4 xl:top-4 xl:bottom-4 xl:w-[320px] z-20 bg-white text-slate-950 border border-slate-200 rounded-xl shadow-2xl overflow-hidden flex flex-col" aria-label="Find a Sierra Leone district">
+              <div className="p-4 border-b border-slate-200 bg-white">
+                <h4 className="text-lg font-black tracking-tight text-slate-950">Find a GIS District</h4>
+                <label htmlFor="gis-district-search" className="block mt-3 mb-1.5 text-[11px] font-bold text-slate-700">
+                  Search by District, Code, or Region
+                </label>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <input
+                      id="gis-district-search"
+                      value={districtSearchQuery}
+                      onChange={(e) => setDistrictSearchQuery(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter") handleDistrictSearch(); }}
+                      placeholder="Bo, Eastern, SL-KN"
+                      className="w-full h-10 border border-slate-300 bg-white pl-3 pr-9 text-xs text-slate-950 outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+                    />
+                    <Search className="absolute right-2.5 top-2.5 w-4 h-4 text-slate-600" />
+                  </div>
+                  <button
+                    onClick={handleDistrictSearch}
+                    className="h-10 bg-red-700 hover:bg-red-800 text-white px-4 text-xs font-bold transition-colors"
+                  >
+                    Search
+                  </button>
+                </div>
+                <button
+                  onClick={handleUseMyLocation}
+                  className="mt-2 text-[11px] font-bold underline text-slate-800 hover:text-emerald-700 flex items-center gap-1"
+                >
+                  <LocateFixed className="w-3 h-3" />
+                  Use My Location
+                </button>
+              </div>
+
+              <div className="px-4 py-3 border-b border-slate-200 bg-slate-50 flex items-center justify-between gap-3">
+                <strong className="text-xs text-slate-950">
+                  {filteredDistrictResults.length} results {districtSearchQuery.trim() ? `for “${districtSearchQuery.trim()}”` : "across Sierra Leone"}
+                </strong>
+                <button
+                  onClick={() => setActiveLayer(activeLayer === "yield" ? "infra" : activeLayer === "infra" ? "climate" : "yield")}
+                  className="text-[11px] font-semibold text-slate-700 hover:text-slate-950 flex items-center gap-1 whitespace-nowrap"
+                >
+                  Filter By
+                  <span className="text-slate-500">⌄</span>
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto bg-white divide-y divide-slate-100 max-h-[420px] xl:max-h-none">
+                {filteredDistrictResults.map((district, idx) => {
+                  const statusLabel = district.criticalCount > 0 ? `${district.criticalCount} critical alerts` : "Open - On track";
+                  const statusClass = district.criticalCount > 0 ? "text-red-700" : "text-emerald-700";
+
+                  return (
+                    <article
+                      key={district.name}
+                      className={`grid grid-cols-[24px_1fr_auto] gap-3 px-4 py-4 text-xs transition-colors ${
+                        selectedDistrict === district.name ? "bg-emerald-50" : "hover:bg-slate-50"
+                      }`}
+                    >
+                      <span className="font-black text-slate-900 text-right">{idx + 1}</span>
+                      <div className="min-w-0">
+                        <button
+                          onClick={() => onSelectDistrict(district.name)}
+                          className="font-black underline text-slate-950 hover:text-emerald-700 text-left leading-tight"
+                        >
+                          {district.name} District
+                        </button>
+                        <p className={`mt-2 font-bold ${statusClass}`}>{statusLabel}</p>
+                        <p className="mt-3 leading-snug text-slate-800">
+                          {district.code} · {district.region} Region<br />
+                          {district.avgProgress}% avg progress · {district.roadsRehabbed} km roads
+                        </p>
+                        <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 font-bold">
+                          <button onClick={() => { onSelectDistrict(district.name); setRightPanelTab("telemetry"); }} className="underline text-slate-800 hover:text-emerald-700">
+                            View Details
+                          </button>
+                          <button onClick={() => onSelectDistrict(district.name)} className="underline text-slate-800 hover:text-emerald-700">
+                            Focus Map
+                          </button>
+                        </div>
+                      </div>
+                      <span className="font-black text-slate-900 whitespace-nowrap">{district.distance} km</span>
+                    </article>
+                  );
+                })}
+
+                {filteredDistrictResults.length === 0 && (
+                  <div className="p-5 text-sm text-slate-700">
+                    No districts matched that search. Try a district name like <strong>Kenema</strong>, a region like <strong>Eastern</strong>, or a code like <strong>SL-KN</strong>.
+                  </div>
+                )}
+              </div>
+            </aside>
             <svg
               viewBox={`0 0 ${MAP_W} ${MAP_H}`}
               className="w-full max-w-[520px] h-auto drop-shadow-3xl transition-all"
