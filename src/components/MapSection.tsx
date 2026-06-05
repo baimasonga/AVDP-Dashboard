@@ -1,10 +1,11 @@
 import React, { useState, useMemo } from "react";
 import { SIERRA_LEONE_DISTRICTS, getDistrictSummaries } from "../data";
 import { Indicator, DistrictMetricSummary } from "../types";
-import { 
-  MapPin, TrendingUp, HelpCircle, Eye, Info, Layers, RefreshCw, 
-  Compass, Navigation, Route, AlertTriangle, ShieldAlert, CheckCircle2,
-  Calendar, Award, Server, Activity, GitCompare, Search, LocateFixed
+import {
+  MapPin, TrendingUp, Layers, RefreshCw,
+  Compass, Navigation, Route, AlertTriangle,
+  Activity, GitCompare, Search, Server,
+  LocateFixed, X
 } from "lucide-react";
 
 interface MapSectionProps {
@@ -21,37 +22,25 @@ type DistrictMapShape = {
   name: string;
   points: string;
   label: { x: number; y: number; size?: number; lines?: string[] };
-  provinceColor: string;
 };
 
-const PROVINCE_COLORS = {
-  eastern: "#b8c77d",
-  northern: "#e6b64d",
-  southern: "#f1ea62",
-  northWest: "#f7a77f",
-  western: "#e4b247",
-  highlands: "#f4a783",
-};
-
-// 2017+ sixteen-district Sierra Leone district layout, redrawn as an in-app
-// vector so AVDP overlays can stay interactive while matching the Mappr layout.
 const DISTRICT_MAP_SHAPES: DistrictMapShape[] = [
-  { name: "Kambia", points: "20,205 52,170 112,178 154,132 215,142 224,205 182,238 105,242 62,272 18,250", label: { x: 106, y: 213, size: 22 }, provinceColor: PROVINCE_COLORS.eastern },
-  { name: "Karene", points: "180,44 300,26 333,58 414,36 414,135 350,142 312,186 245,168 225,205 206,144 154,132", label: { x: 282, y: 116, size: 28 }, provinceColor: PROVINCE_COLORS.southern },
-  { name: "Koinadugu", points: "414,18 520,10 542,80 616,82 612,178 548,190 520,256 458,220 434,142 414,135", label: { x: 492, y: 112, size: 26 }, provinceColor: PROVINCE_COLORS.highlands },
-  { name: "Falaba", points: "542,10 710,10 736,76 716,176 674,240 612,230 612,178 616,82", label: { x: 654, y: 136, size: 30 }, provinceColor: PROVINCE_COLORS.northern },
-  { name: "Bombali", points: "245,168 312,186 350,142 434,142 458,220 426,296 350,312 292,270 222,288 188,238 225,205", label: { x: 342, y: 237, size: 28 }, provinceColor: PROVINCE_COLORS.northern },
-  { name: "Port Loko", points: "62,272 105,242 188,238 222,288 292,270 300,330 246,355 158,332 72,356 18,326", label: { x: 142, y: 314, size: 24 }, provinceColor: PROVINCE_COLORS.highlands },
-  { name: "Western Area Urban", points: "18,340 54,324 72,356 48,386 18,374", label: { x: 28, y: 356, size: 10, lines: ["Western", "Urban"] }, provinceColor: "#ffffff" },
-  { name: "Western Area Rural", points: "20,376 48,386 72,356 122,366 108,432 44,438", label: { x: 66, y: 404, size: 15, lines: ["Western", "Rural"] }, provinceColor: PROVINCE_COLORS.western },
-  { name: "Tonkolili", points: "300,330 292,270 350,312 426,296 470,330 466,405 390,430 306,390 246,355", label: { x: 385, y: 356, size: 34 }, provinceColor: PROVINCE_COLORS.eastern },
-  { name: "Kono", points: "520,256 548,190 612,230 674,240 730,286 712,360 646,396 560,380 502,328", label: { x: 622, y: 318, size: 46 }, provinceColor: PROVINCE_COLORS.southern },
-  { name: "Moyamba", points: "108,432 122,366 246,355 306,390 338,458 270,508 130,500 56,476", label: { x: 200, y: 456, size: 34 }, provinceColor: PROVINCE_COLORS.southern },
-  { name: "Bo", points: "338,458 306,390 390,430 466,405 500,462 470,548 350,548 270,508", label: { x: 410, y: 494, size: 44 }, provinceColor: PROVINCE_COLORS.northern },
-  { name: "Kenema", points: "500,462 466,405 502,328 560,380 646,396 640,518 570,578 470,548", label: { x: 542, y: 505, size: 23 }, provinceColor: PROVINCE_COLORS.highlands },
-  { name: "Kailahun", points: "646,396 712,360 738,410 710,530 640,518", label: { x: 674, y: 462, size: 24 }, provinceColor: PROVINCE_COLORS.eastern },
-  { name: "Bonthe", points: "56,476 130,500 270,508 350,548 326,604 178,580 70,535", label: { x: 246, y: 546, size: 30 }, provinceColor: PROVINCE_COLORS.eastern },
-  { name: "Pujehun", points: "350,548 470,548 570,578 510,612 374,612 326,604", label: { x: 442, y: 590, size: 30 }, provinceColor: PROVINCE_COLORS.southern },
+  { name: "Kambia",             points: "20,205 52,170 112,178 154,132 215,142 224,205 182,238 105,242 62,272 18,250",       label: { x: 106, y: 213, size: 22 } },
+  { name: "Karene",             points: "180,44 300,26 333,58 414,36 414,135 350,142 312,186 245,168 225,205 206,144 154,132", label: { x: 282, y: 116, size: 26 } },
+  { name: "Koinadugu",          points: "414,18 520,10 542,80 616,82 612,178 548,190 520,256 458,220 434,142 414,135",        label: { x: 492, y: 112, size: 24 } },
+  { name: "Falaba",             points: "542,10 710,10 736,76 716,176 674,240 612,230 612,178 616,82",                        label: { x: 654, y: 136, size: 28 } },
+  { name: "Bombali",            points: "245,168 312,186 350,142 434,142 458,220 426,296 350,312 292,270 222,288 188,238 225,205", label: { x: 342, y: 237, size: 26 } },
+  { name: "Port Loko",          points: "62,272 105,242 188,238 222,288 292,270 300,330 246,355 158,332 72,356 18,326",       label: { x: 142, y: 314, size: 22 } },
+  { name: "Western Area Urban", points: "18,340 54,324 72,356 48,386 18,374",                                                label: { x: 28, y: 360, size: 9,  lines: ["W.Urban"] } },
+  { name: "Western Area Rural", points: "20,376 48,386 72,356 122,366 108,432 44,438",                                       label: { x: 66, y: 404, size: 12, lines: ["W.Rural"] } },
+  { name: "Tonkolili",          points: "300,330 292,270 350,312 426,296 470,330 466,405 390,430 306,390 246,355",            label: { x: 385, y: 356, size: 30 } },
+  { name: "Kono",               points: "520,256 548,190 612,230 674,240 730,286 712,360 646,396 560,380 502,328",            label: { x: 622, y: 318, size: 38 } },
+  { name: "Moyamba",            points: "108,432 122,366 246,355 306,390 338,458 270,508 130,500 56,476",                    label: { x: 200, y: 456, size: 28 } },
+  { name: "Bo",                 points: "338,458 306,390 390,430 466,405 500,462 470,548 350,548 270,508",                   label: { x: 410, y: 494, size: 38 } },
+  { name: "Kenema",             points: "500,462 466,405 502,328 560,380 646,396 640,518 570,578 470,548",                   label: { x: 542, y: 505, size: 22 } },
+  { name: "Kailahun",           points: "646,396 712,360 738,410 710,530 640,518",                                           label: { x: 674, y: 462, size: 22 } },
+  { name: "Bonthe",             points: "56,476 130,500 270,508 350,548 326,604 178,580 70,535",                             label: { x: 246, y: 546, size: 26 } },
+  { name: "Pujehun",            points: "350,548 470,548 570,578 510,612 374,612 326,604",                                   label: { x: 442, y: 590, size: 26 } },
 ];
 
 type GISLayer = "yield" | "infra" | "climate";
@@ -66,16 +55,27 @@ export default function MapSection({
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
   const [activeLayer, setActiveLayer] = useState<GISLayer>("yield");
   const [districtSearchQuery, setDistrictSearchQuery] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [rightPanelTab, setRightPanelTab] = useState<"telemetry" | "compare">("telemetry");
+  const [districtAlpha, setDistrictAlpha] = useState<string>("Bo");
+  const [districtBeta, setDistrictBeta] = useState<string>("Kenema");
 
-  // Calculate live summaries based on current state of indicators
-  const districtSummaries = useMemo(() => {
-    return getDistrictSummaries(indicators);
+  const districtSummaries = useMemo(() => getDistrictSummaries(indicators), [indicators]);
+
+  const nationalAverages = useMemo(() => {
+    const total = indicators.length;
+    if (total === 0) return { progress: 0, critical: 0 };
+    return {
+      progress: Math.round(indicators.reduce((s, i) => s + i.Progress, 0) / total),
+      critical: indicators.filter(i => i.Status === "Critical").length,
+    };
   }, [indicators]);
 
+  // Only show search results when the user has typed something
   const filteredDistrictResults = useMemo(() => {
     const query = districtSearchQuery.trim().toLowerCase();
+    if (!query) return [];
     const selectedGeo = SIERRA_LEONE_DISTRICTS.find(d => d.name === selectedDistrict);
-
     return districtSummaries
       .map(summary => {
         const geo = SIERRA_LEONE_DISTRICTS.find(d => d.name === summary.name);
@@ -87,479 +87,310 @@ export default function MapSection({
         const distance = selectedGeo && geo
           ? Math.max(1, Math.round(Math.hypot(selectedGeo.x - geo.x, selectedGeo.y - geo.y) * 3.2))
           : Math.max(2, Math.round(((geo?.x || 10) + (geo?.y || 10)) / 4));
-
         return { ...summary, criticalCount, avgProgress, distance };
       })
-      .filter(summary => {
-        if (!query) return true;
-        return [summary.name, summary.code, summary.region]
-          .some(value => value.toLowerCase().includes(query));
-      })
-      .sort((a, b) => {
-        if (selectedDistrict) return a.distance - b.distance;
-        if (b.criticalCount !== a.criticalCount) return b.criticalCount - a.criticalCount;
-        return a.name.localeCompare(b.name);
-      });
+      .filter(s => [s.name, s.code, s.region].some(v => v.toLowerCase().includes(query)))
+      .sort((a, b) => a.name.localeCompare(b.name));
   }, [districtSearchQuery, districtSummaries, indicators, selectedDistrict]);
 
-  const handleDistrictSearch = () => {
-    const firstMatch = filteredDistrictResults[0];
-    if (firstMatch) {
-      onSelectDistrict(firstMatch.name);
+  // Teal heatmap fill based on indicator performance
+  const getDistrictFill = (name: string): string => {
+    const districtIndicators = indicators.filter(i => i.District === name);
+    if (districtIndicators.length === 0) {
+      if (activeLayer === "infra") return "#0d9488";
+      if (activeLayer === "climate") {
+        const coastal = ["Bonthe","Pujehun","Moyamba","Western Area Rural","Western Area Urban","Port Loko","Kambia"];
+        return coastal.includes(name) ? "#7c3aed" : "#059669";
+      }
+      return "#10b981";
     }
+    if (activeLayer === "infra") {
+      const summary = districtSummaries.find(d => d.name === name);
+      const isHub = (summary?.roadsRehabbed || 0) >= 20 || ["Kenema","Moyamba","Port Loko","Bo","Tonkolili","Kambia"].includes(name);
+      return isHub ? "#0ea5e9" : "#0e7490";
+    }
+    if (activeLayer === "climate") {
+      const coastal = ["Bonthe","Pujehun","Moyamba","Western Area Rural","Western Area Urban","Port Loko","Kambia"];
+      return coastal.includes(name) ? "#8b5cf6" : "#10b981";
+    }
+    // yield layer — teal shades by status ratio
+    const critical = districtIndicators.filter(i => i.Status === "Critical").length;
+    const onTrack  = districtIndicators.filter(i => i.Status === "On Track").length;
+    const ratio    = onTrack / districtIndicators.length;
+    if (critical > 0)  return "#0d9488"; // darker teal — needs attention
+    if (ratio >= 0.8)  return "#34d399"; // bright emerald — great
+    if (ratio >= 0.5)  return "#10b981"; // emerald — good
+    return "#059669";                    // deeper green — ok
   };
 
-  const handleUseMyLocation = () => {
-    const fallbackDistrict = "Western Area Urban";
-    setDistrictSearchQuery(fallbackDistrict);
-    onSelectDistrict(fallbackDistrict);
+  const getDistrictStroke = (name: string) => {
+    const isSelected = selectedDistrict === name;
+    const isHovered  = hoveredDistrict?.name === name;
+    if (isSelected) return { stroke: "#f0fdf4", strokeWidth: 3 };
+    if (isHovered)  return { stroke: "#a7f3d0", strokeWidth: 2 };
+    return { stroke: "#064e3b", strokeWidth: 1 };
   };
 
-  const [rightPanelTab, setRightPanelTab] = useState<"telemetry" | "compare">("telemetry");
-  const [districtAlpha, setDistrictAlpha] = useState<string>("Bo");
-  const [districtBeta, setDistrictBeta] = useState<string>("Kenema");
+  const getIndicatorCount = (name: string) =>
+    indicators.filter(i => i.District === name).length;
 
-  // Geoinformatics math configuration for the Radar polygon overlay
-  const cx = 140;
-  const cy = 125;
-  const rMax = 70;
-  const N_VERTICES = 5;
+  const handleMouseMove = (e: React.MouseEvent, districtName: string) => {
+    const rect = (e.currentTarget as SVGElement).closest("svg")!.getBoundingClientRect();
+    setTooltipPos({ x: e.clientX - rect.left + 15, y: e.clientY - rect.top + 10 });
+    const summary = districtSummaries.find(d => d.name === districtName);
+    if (summary) setHoveredDistrict(summary);
+  };
+
+  const handleMouseLeave = () => setHoveredDistrict(null);
+
+  // Radar chart helpers
+  const cx = 140; const cy = 125; const rMax = 70; const N = 5;
 
   const getNormalizeMetrics = (distName: string) => {
     const sum = districtSummaries.find(d => d.name === distName);
-    if (!sum) {
-      return [
-        { label: "Rice Index", val: 50 },
-        { label: "Tree Crops Index", val: 50 },
-        { label: "Feeder Roads", val: 50 },
-        { label: "Agri-Processing", val: 50 },
-        { label: "Farmer Income", val: 50 }
-      ];
-    }
-
-    const riceBase = sum.riceYieldBaseline || 40;
-    const riceAch = sum.riceYieldAchieved || 65;
-    const riceScore = Math.min((riceAch / riceBase) * 100, 150);
-
-    const treeBase = (sum.cocoaYieldBaseline || 30) + (sum.coffeeYieldBaseline || 20) + (sum.palmYieldBaseline || 15);
-    const treeAch = (sum.cocoaYieldAchieved || 48) + (sum.coffeeYieldAchieved || 32) + (sum.palmYieldAchieved || 24);
-    const treeScore = Math.min((treeAch / treeBase) * 100, 150);
-
-    const roadScore = Math.min((sum.roadsRehabbed / 25) * 100, 150);
-    const infraScore = Math.min((sum.facilitiesBuilt / 3) * 100, 150);
-    const incomeScore = Math.min((sum.farmerIncomeAverage / 200) * 100, 150);
-
+    if (!sum) return Array(5).fill(0).map((_, i) => ({ label: ["Rice","Tree Crops","Roads","Processing","Income"][i], val: 50 }));
+    const riceScore  = Math.min(((sum.riceYieldAchieved || 65) / (sum.riceYieldBaseline || 40)) * 100, 150);
+    const treeBase   = (sum.cocoaYieldBaseline||30)+(sum.coffeeYieldBaseline||20)+(sum.palmYieldBaseline||15);
+    const treeAch    = (sum.cocoaYieldAchieved||48)+(sum.coffeeYieldAchieved||32)+(sum.palmYieldAchieved||24);
+    const treeScore  = Math.min((treeAch/treeBase)*100,150);
     return [
-      { label: "Rice Index", val: Math.round(riceScore) },
-      { label: "Tree Crops Index", val: Math.round(treeScore) },
-      { label: "Feeder Roads", val: Math.round(roadScore) },
-      { label: "Agri-Processing", val: Math.round(infraScore) },
-      { label: "Farmer Income", val: Math.round(incomeScore) }
+      { label: "Rice Index",      val: Math.round(riceScore) },
+      { label: "Tree Crops",      val: Math.round(treeScore) },
+      { label: "Feeder Roads",    val: Math.min(Math.round((sum.roadsRehabbed/25)*100),150) },
+      { label: "Agri-Processing", val: Math.min(Math.round((sum.facilitiesBuilt/3)*100),150) },
+      { label: "Farmer Income",   val: Math.min(Math.round((sum.farmerIncomeAverage/200)*100),150) },
     ];
   };
 
-  const metricsAlpha = useMemo(() => {
-    return getNormalizeMetrics(districtAlpha);
-  }, [districtAlpha, indicators]);
+  const metricsAlpha = useMemo(() => getNormalizeMetrics(districtAlpha), [districtAlpha, indicators]);
+  const metricsBeta  = useMemo(() => getNormalizeMetrics(districtBeta),  [districtBeta,  indicators]);
 
-  const metricsBeta = useMemo(() => {
-    return getNormalizeMetrics(districtBeta);
-  }, [districtBeta, indicators]);
-
-  const getPointsString = (metrics: { label: string; val: number }[]) => {
-    return metrics.map((m, idx) => {
-      const currentR = (m.val / 150) * rMax;
-      const angle = (2 * Math.PI * idx) / N_VERTICES - Math.PI / 2;
-      const x = cx + currentR * Math.cos(angle);
-      const y = cy + currentR * Math.sin(angle);
-      return `${Math.round(x * 10) / 10},${Math.round(y * 10) / 10}`;
-    }).join(" ");
+  const radarPoint = (idx: number, val: number) => {
+    const r = (Math.min(val,150)/150) * rMax;
+    const a = (2*Math.PI*idx)/N - Math.PI/2;
+    return { x: +(cx+r*Math.cos(a)).toFixed(1), y: +(cy+r*Math.sin(a)).toFixed(1) };
   };
-
-  const getRadarPoint = (index: number, value: number) => {
-    const normVal = Math.min(value, 150);
-    const currentR = (normVal / 150) * rMax;
-    const angle = (2 * Math.PI * index) / N_VERTICES - Math.PI / 2;
-    const x = cx + currentR * Math.cos(angle);
-    const y = cy + currentR * Math.sin(angle);
-    return { x: Math.round(x * 10) / 10, y: Math.round(y * 10) / 10 };
+  const toPoints = (ms: {val:number}[]) => ms.map((m,i) => { const p=radarPoint(i,m.val); return `${p.x},${p.y}`; }).join(" ");
+  const gridPts  = (s: number) => Array.from({length:N},(_,i)=>{ const a=(2*Math.PI*i)/N-Math.PI/2; return `${+(cx+(s/150)*rMax*Math.cos(a)).toFixed(0)},${+(cy+(s/150)*rMax*Math.sin(a)).toFixed(0)}`; }).join(" ");
+  const spokes   = Array.from({length:N},(_,i)=>{ const a=(2*Math.PI*i)/N-Math.PI/2; return { x2:+(cx+rMax*Math.cos(a)).toFixed(1), y2:+(cy+rMax*Math.sin(a)).toFixed(1) }; });
+  const labelCoords = (i: number) => {
+    const r=rMax+14; const a=(2*Math.PI*i)/N-Math.PI/2;
+    return { x:+(cx+r*Math.cos(a)).toFixed(1), y:+(cy+r*Math.sin(a)).toFixed(1), anchor: cx+r*Math.cos(a)>cx+8?"start":cx+r*Math.cos(a)<cx-8?"end":"middle" as "start"|"middle"|"end" };
   };
-
-  const getGridPolygonPoints = (scaleVal: number) => {
-    const currentR = (scaleVal / 150) * rMax;
-    return Array.from({ length: N_VERTICES }).map((_, idx) => {
-      const angle = (2 * Math.PI * idx) / N_VERTICES - Math.PI / 2;
-      const x = cx + currentR * Math.cos(angle);
-      const y = cy + currentR * Math.sin(angle);
-      return `${Math.round(x)},${Math.round(y)}`;
-    }).join(" ");
-  };
-
-  const getLabelCoords = (index: number) => {
-    const rLabel = rMax + 14;
-    const angle = (2 * Math.PI * index) / N_VERTICES - Math.PI / 2;
-    const x = cx + rLabel * Math.cos(angle);
-    const y = cy + rLabel * Math.sin(angle);
-    
-    let anchor: "start" | "middle" | "end" = "middle";
-    if (x > cx + 8) anchor = "start";
-    else if (x < cx - 8) anchor = "end";
-    
-    let dy = "0.33em";
-    if (index === 0) dy = "-0.28em";
-    else if (index === 2 || index === 3) dy = "0.9em";
-
-    return { x, y, anchor, dy };
-  };
-
-  const gridLines = useMemo(() => {
-    return Array.from({ length: N_VERTICES }).map((_, idx) => {
-      const angle = (2 * Math.PI * idx) / N_VERTICES - Math.PI / 2;
-      const x = cx + rMax * Math.cos(angle);
-      const y = cy + rMax * Math.sin(angle);
-      return { x1: cx, y1: cy, x2: x, y2: y };
-    });
-  }, [cx, cy, rMax]);
-
-  const nationalAverages = useMemo(() => {
-    const total = indicators.length;
-    if (total === 0) return { progress: 0, critical: 0 };
-    const avgProgress = indicators.reduce((s, i) => s + i.Progress, 0) / total;
-    const critical = indicators.filter(i => i.Status === "Critical").length;
-    return {
-      progress: Math.round(avgProgress),
-      critical
-    };
-  }, [indicators]);
-
-  // Handle map interaction
-  const handleMouseMove = (e: React.MouseEvent, districtName: string) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    // Offset relative to containing coordinate element
-    setTooltipPos({
-      x: e.clientX - rect.left + 15,
-      y: e.clientY - rect.top + 10
-    });
-
-    const summary = districtSummaries.find(d => d.name === districtName);
-    if (summary) {
-      setHoveredDistrict(summary);
-    }
-  };
-
-  const handleMouseLeave = () => {
-    setHoveredDistrict(null);
-  };
-
-  // Advanced GIS thematic styling keyed by the full 16-district AVDP activity map.
-  const getDistrictMapPresentation = (name: string, baseFill: string) => {
-    const districtIndicators = indicators.filter(i => i.District === name);
-    const isSelected = selectedDistrict === name;
-    const isHovered = hoveredDistrict?.name === name;
-
-    const criticalCount = districtIndicators.filter(i => i.Status === "Critical").length;
-    const onTrackCount = districtIndicators.filter(i => i.Status === "On Track").length;
-    const ratio = districtIndicators.length > 0 ? onTrackCount / districtIndicators.length : 0.8;
-
-    let fill = baseFill;
-    let stroke = criticalCount > 0 ? "#dc2626" : ratio < 0.6 ? "#d97706" : "#111827";
-    let strokeWidth = isSelected ? 4 : criticalCount > 0 ? 2.5 : 1.4;
-    let opacity = 0.96;
-
-    if (activeLayer === "infra") {
-      const summary = districtSummaries.find(d => d.name === name);
-      const isRoadHub = (summary?.roadsRehabbed || 0) >= 20 || ["Kenema", "Moyamba", "Port Loko", "Bo", "Tonkolili", "Kambia"].includes(name);
-      fill = isRoadHub ? "#7dd3fc" : "#dbeafe";
-      stroke = isRoadHub ? "#0891b2" : "#64748b";
-      strokeWidth = isSelected ? 4 : isRoadHub ? 2.4 : 1.2;
-    } else if (activeLayer === "climate") {
-      const coastalFloodZones = ["Bonthe", "Pujehun", "Moyamba", "Western Area Rural", "Western Area Urban", "Port Loko", "Kambia"];
-      const isHighFloodRisk = coastalFloodZones.includes(name);
-      fill = isHighFloodRisk ? "#c4b5fd" : "#bbf7d0";
-      stroke = isHighFloodRisk ? "#7c3aed" : "#059669";
-      strokeWidth = isSelected ? 4 : isHighFloodRisk ? 2.4 : 1.2;
-    }
-
-    if (isHovered && !isSelected) {
-      opacity = 1;
-      strokeWidth += 1;
-    }
-
-    return {
-      className: "transition-all duration-300 cursor-pointer",
-      style: { fill, stroke, strokeWidth, opacity } as React.CSSProperties,
-    };
-  };
-
-  // Detailed layer info
-  const activeLayerMeta = useMemo(() => {
-    switch (activeLayer) {
-      case "yield":
-        return {
-          title: "2017+ District Map: AVDP Yield & Delivery Activity Index",
-          indicatorName: "On-site Target Performance",
-          legend: [
-            { label: "Optimal Output (>130% target)", color: "bg-emerald-500" },
-            { label: "Stable Development (100% - 130%)", color: "bg-amber-500" },
-            { label: "Sub-Baseline Interventions Area", color: "bg-red-500" }
-          ]
-        };
-      case "infra":
-        return {
-          title: "GIS Overlay: Feeder Road & Infrastructure Network Density",
-          indicatorName: "Rehabilitated Road Connections",
-          legend: [
-            { label: "Major Corridor Corridors (>25 km)", color: "bg-teal-500" },
-            { label: "Sub-Baseline Corridors (Minor)", color: "bg-slate-700" }
-          ]
-        };
-      case "climate":
-        return {
-          title: "GIS Risk Matrix: Climate Monsoon Hazard Zones",
-          indicatorName: "Flood & Wet Swamp Indexations",
-          legend: [
-            { label: "Extreme Coastal Drainage Risk", color: "bg-indigo-500" },
-            { label: "Low Highland Risk Gradient", color: "bg-emerald-500/50" }
-          ]
-        };
-    }
-  }, [activeLayer]);
 
   return (
-    <div className="bg-[#0b1329] border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-visible" id="avdp-geodata-map-root">
-      
-      {/* McKinsey GIS Outer Header Decoration */}
-      <div className="border-b border-slate-800 pb-5 mb-6 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <Compass className="w-5 h-5 text-emerald-400 animate-spin-slow" />
-            <h3 className="text-sm font-bold text-slate-100 tracking-tight flex items-center gap-2">
-              IFAD-AVDP Geoinformatics Information System (GIS)
-            </h3>
-            <span className="text-[9px] bg-emerald-950 border border-emerald-500/25 text-emerald-400 px-2 py-0.5 rounded font-mono font-bold uppercase tracking-wider">
-              McKinsey GIS v2.4
-            </span>
-          </div>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Sixteen-district Sierra Leone activity map aligned to the current province layout, with live AVDP yield, roads, climate, and processing overlays.
-          </p>
-        </div>
+    <div className="bg-[#060d1e] border border-slate-800 rounded-2xl shadow-2xl overflow-hidden" id="avdp-geodata-map-root">
 
-        {/* Global Reset actions */}
-        <div className="flex gap-2 shrink-0 select-none">
+      {/* ── Header ── */}
+      <div className="border-b border-slate-800 px-6 py-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+        <div className="flex items-center gap-3">
+          <Compass className="w-5 h-5 text-emerald-400 shrink-0" />
+          <div>
+            <h3 className="text-sm font-bold text-slate-100 tracking-tight">
+              IFAD-AVDP Geoinformatics Information System
+              <span className="ml-2 text-[9px] bg-emerald-950 border border-emerald-500/25 text-emerald-400 px-2 py-0.5 rounded font-mono uppercase tracking-wider align-middle">
+                GIS v2.4
+              </span>
+            </h3>
+            <p className="text-xs text-slate-500 mt-0.5">
+              16-district Sierra Leone · Live yield, roads &amp; climate overlays
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
           {selectedDistrict && (
-            <button
-              onClick={() => onSelectDistrict(null)}
-              className="text-[10px] bg-slate-900 hover:bg-slate-800 hover:text-emerald-300 text-slate-300 font-mono flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-800 cursor-pointer transition-colors"
-            >
-              <RefreshCw className="w-3 h-3" />
-              Reset GIS Lens
+            <button onClick={() => onSelectDistrict(null)}
+              className="text-[10px] font-mono flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-emerald-300 border border-slate-800 cursor-pointer transition-colors">
+              <RefreshCw className="w-3 h-3" /> Reset GIS Lens
             </button>
           )}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 relative overflow-visible">
-        
-        {/* Main Interactive Geographic Canvas (Left Panel) */}
-        <div className="xl:col-span-8 bg-[#020617] rounded-2xl border border-slate-900 p-4 flex flex-col justify-between min-h-[600px] relative overflow-hidden">
-          
-          {/* Subtle GIS Topographic Scale Rule & Navigation Overlay */}
-          <div className="absolute top-3 left-3 xl:left-[360px] z-10 flex flex-col gap-1.5 pointer-events-none font-mono text-[9px] text-slate-400 bg-slate-950/80 border border-slate-920/40 p-2.5 rounded-lg">
-            <div className="flex items-center gap-1">
-              <Navigation className="w-3 h-3 text-emerald-400" />
-              <span>BEARING: <strong>WGS 84 / UTM ZONE 29N</strong></span>
-            </div>
-            <div>COORDINATES: <strong className="text-slate-200">8.4606° N, 11.7799° W</strong></div>
-            <div>ALTITUDE REF: <strong className="text-emerald-400">Guinean Highlands Basin</strong></div>
-          </div>
+      {/* ── Body: Map + Right Panel ── */}
+      <div className="flex flex-col xl:flex-row">
 
-          {/* Compass Rose graphics decoration */}
-          {!isLowBandwidth && (
-            <div className="absolute top-3 right-3 pointer-events-none opacity-30 flex flex-col items-center">
-              <Compass className="w-10 h-10 text-slate-400" />
-              <span className="text-[7px] font-mono mt-0.5 text-slate-400">TRUE N</span>
-            </div>
-          )}
+        {/* ════ LEFT / MAP AREA ════ */}
+        <div className="flex-1 relative bg-[#020617] min-h-[600px] flex flex-col">
 
-          {/* Real District Contour map SVG Viewport with district finder sidebar */}
-          <div className="w-full flex flex-col xl:flex-row items-stretch xl:items-center justify-center gap-4 py-4 relative xl:pl-[352px]">
-            <aside className="xl:absolute xl:left-4 xl:top-4 xl:bottom-4 xl:w-[320px] z-20 bg-white text-slate-950 border border-slate-200 rounded-xl shadow-2xl overflow-hidden flex flex-col" aria-label="Find a Sierra Leone district">
-              <div className="p-4 border-b border-slate-200 bg-white">
-                <h4 className="text-lg font-black tracking-tight text-slate-950">Find an AVDP District</h4>
-                <label htmlFor="gis-district-search" className="block mt-3 mb-1.5 text-[11px] font-bold text-slate-700">
-                  Search by District, Code, or Region
-                </label>
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <input
-                      id="gis-district-search"
-                      value={districtSearchQuery}
-                      onChange={(e) => setDistrictSearchQuery(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === "Enter") handleDistrictSearch(); }}
-                      placeholder="Bo, Eastern, SL-KN"
-                      className="w-full h-10 border border-slate-300 bg-white pl-3 pr-9 text-xs text-slate-950 outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
-                    />
-                    <Search className="absolute right-2.5 top-2.5 w-4 h-4 text-slate-600" />
-                  </div>
-                  <button
-                    onClick={handleDistrictSearch}
-                    className="h-10 bg-red-700 hover:bg-red-800 text-white px-4 text-xs font-bold transition-colors"
-                  >
-                    Search
+          {/* Search bar — compact, floats over map */}
+          <div className="absolute top-4 left-4 z-30 w-72">
+            <div className="bg-white rounded-xl shadow-2xl overflow-hidden">
+              <div className="flex items-center gap-2 px-3 py-2.5">
+                <Search className="w-4 h-4 text-slate-500 shrink-0" />
+                <input
+                  value={districtSearchQuery}
+                  onChange={e => { setDistrictSearchQuery(e.target.value); setSearchOpen(!!e.target.value); }}
+                  onFocus={() => districtSearchQuery && setSearchOpen(true)}
+                  onKeyDown={e => {
+                    if (e.key === "Enter" && filteredDistrictResults[0]) {
+                      onSelectDistrict(filteredDistrictResults[0].name);
+                      setDistrictSearchQuery("");
+                      setSearchOpen(false);
+                    }
+                    if (e.key === "Escape") { setSearchOpen(false); setDistrictSearchQuery(""); }
+                  }}
+                  placeholder="Find a district, code, or region…"
+                  className="flex-1 text-xs text-slate-900 outline-none placeholder-slate-400 bg-transparent"
+                />
+                {districtSearchQuery && (
+                  <button onClick={() => { setDistrictSearchQuery(""); setSearchOpen(false); }}
+                    className="text-slate-400 hover:text-slate-700 cursor-pointer">
+                    <X className="w-3.5 h-3.5" />
                   </button>
-                </div>
-                <button
-                  onClick={handleUseMyLocation}
-                  className="mt-2 text-[11px] font-bold underline text-slate-800 hover:text-emerald-700 flex items-center gap-1"
-                >
-                  <LocateFixed className="w-3 h-3" />
-                  Use My Location
-                </button>
-              </div>
-
-              <div className="px-4 py-3 border-b border-slate-200 bg-slate-50 flex items-center justify-between gap-3">
-                <strong className="text-xs text-slate-950">
-                  {filteredDistrictResults.length} results {districtSearchQuery.trim() ? `for “${districtSearchQuery.trim()}”` : "across Sierra Leone"}
-                </strong>
-                <button
-                  onClick={() => setActiveLayer(activeLayer === "yield" ? "infra" : activeLayer === "infra" ? "climate" : "yield")}
-                  className="text-[11px] font-semibold text-slate-700 hover:text-slate-950 flex items-center gap-1 whitespace-nowrap"
-                >
-                  Filter By
-                  <span className="text-slate-500">⌄</span>
-                </button>
-              </div>
-
-              <div className="flex-1 overflow-y-auto bg-white divide-y divide-slate-100 max-h-[420px] xl:max-h-none">
-                {filteredDistrictResults.map((district, idx) => {
-                  const statusLabel = district.criticalCount > 0 ? `${district.criticalCount} critical alerts` : "Open - On track";
-                  const statusClass = district.criticalCount > 0 ? "text-red-700" : "text-emerald-700";
-
-                  return (
-                    <article
-                      key={district.name}
-                      className={`grid grid-cols-[24px_1fr_auto] gap-3 px-4 py-4 text-xs transition-colors ${
-                        selectedDistrict === district.name ? "bg-emerald-50" : "hover:bg-slate-50"
-                      }`}
-                    >
-                      <span className="font-black text-slate-900 text-right">{idx + 1}</span>
-                      <div className="min-w-0">
-                        <button
-                          onClick={() => onSelectDistrict(district.name)}
-                          className="font-black underline text-slate-950 hover:text-emerald-700 text-left leading-tight"
-                        >
-                          {district.name} District
-                        </button>
-                        <p className={`mt-2 font-bold ${statusClass}`}>{statusLabel}</p>
-                        <p className="mt-3 leading-snug text-slate-800">
-                          {district.code} · {district.region} Region<br />
-                          {district.avgProgress}% avg progress · {district.roadsRehabbed} km roads
-                        </p>
-                        <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 font-bold">
-                          <button onClick={() => { onSelectDistrict(district.name); setRightPanelTab("telemetry"); }} className="underline text-slate-800 hover:text-emerald-700">
-                            View Details
-                          </button>
-                          <button onClick={() => onSelectDistrict(district.name)} className="underline text-slate-800 hover:text-emerald-700">
-                            Focus Map
-                          </button>
-                        </div>
-                      </div>
-                      <span className="font-black text-slate-900 whitespace-nowrap">{district.distance} km</span>
-                    </article>
-                  );
-                })}
-
-                {filteredDistrictResults.length === 0 && (
-                  <div className="p-5 text-sm text-slate-700">
-                    No districts matched that search. Try a district name like <strong>Kenema</strong>, a region like <strong>Eastern</strong>, or a code like <strong>SL-KN</strong>.
-                  </div>
                 )}
               </div>
-            </aside>
+
+              {/* Results — only when typing */}
+              {searchOpen && filteredDistrictResults.length > 0 && (
+                <div className="border-t border-slate-100 max-h-60 overflow-y-auto divide-y divide-slate-50">
+                  {filteredDistrictResults.map(d => (
+                    <button
+                      key={d.name}
+                      onClick={() => { onSelectDistrict(d.name); setDistrictSearchQuery(""); setSearchOpen(false); }}
+                      className={`w-full text-left px-4 py-3 text-xs hover:bg-emerald-50 transition-colors ${selectedDistrict===d.name?"bg-emerald-50":""}`}
+                    >
+                      <div className="flex justify-between items-start">
+                        <span className="font-bold text-slate-900">{d.name}</span>
+                        {d.criticalCount > 0 && (
+                          <span className="text-[9px] text-red-600 font-bold">{d.criticalCount} critical</span>
+                        )}
+                      </div>
+                      <div className="text-slate-500 mt-0.5">{d.code} · {d.region} · {d.avgProgress}% avg</div>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {searchOpen && districtSearchQuery && filteredDistrictResults.length === 0 && (
+                <div className="border-t border-slate-100 px-4 py-3 text-xs text-slate-500">
+                  No districts matched. Try "Bo", "Eastern", or "SL-KN".
+                </div>
+              )}
+
+              <div className="border-t border-slate-100 px-3 py-2">
+                <button
+                  onClick={() => { onSelectDistrict("Western Area Urban"); setDistrictSearchQuery(""); setSearchOpen(false); }}
+                  className="text-[10px] font-bold text-slate-600 hover:text-emerald-700 flex items-center gap-1 cursor-pointer">
+                  <LocateFixed className="w-3 h-3" /> Use My Location
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Coordinate overlay */}
+          <div className="absolute top-4 right-4 z-10 font-mono text-[9px] text-slate-400 bg-slate-950/80 border border-slate-800/40 px-2.5 py-2 rounded-lg pointer-events-none">
+            <div className="flex items-center gap-1 mb-0.5">
+              <Navigation className="w-3 h-3 text-emerald-400" />
+              <span>WGS 84 / UTM ZONE 29N</span>
+            </div>
+            <div>8.4606° N, 11.7799° W</div>
+          </div>
+
+          {/* ── SVG Map ── */}
+          <div className="relative flex-1 flex items-center justify-center py-6 px-4">
             <svg
               viewBox={`0 0 ${MAP_W} ${MAP_H}`}
-              className="w-full max-w-[620px] h-auto drop-shadow-3xl transition-all bg-white rounded-xl"
-              id="sl-district-svg-map"
+              className="w-full h-full"
+              style={{ maxHeight: "72vh" }}
+              preserveAspectRatio="xMidYMid meet"
             >
               <defs>
-                <pattern id="grid-dots" width="15" height="15" patternUnits="userSpaceOnUse">
-                  <circle cx="2" cy="2" r="0.5" fill="#1e293b" />
-                </pattern>
+                <filter id="glow">
+                  <feGaussianBlur stdDeviation="3" result="coloredBlur" />
+                  <feMerge><feMergeNode in="coloredBlur" /><feMergeNode in="SourceGraphic" /></feMerge>
+                </filter>
+                <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+                  <feDropShadow dx="0" dy="4" stdDeviation="6" floodColor="#000" floodOpacity="0.5" />
+                </filter>
               </defs>
 
-              {/* Reference-map white canvas */}
-              <rect width={MAP_W} height={MAP_H} fill="#ffffff" />
+              {/* Country shadow */}
+              <g filter="url(#shadow)" opacity="0.6">
+                {DISTRICT_MAP_SHAPES.map(d => (
+                  <polygon key={`shadow-${d.name}`} points={d.points} fill="#000" />
+                ))}
+              </g>
 
-              {/* Redrawn 2017+ Sierra Leone 16-district map with live AVDP activity overlays */}
-              <g id="regions-layout">
-                {DISTRICT_MAP_SHAPES.map((district) => {
-                  const name = district.name;
+              {/* Districts */}
+              <g>
+                {DISTRICT_MAP_SHAPES.map(district => {
+                  const { name } = district;
+                  const fill    = getDistrictFill(name);
+                  const stroke  = getDistrictStroke(name);
                   const isSelected = selectedDistrict === name;
-                  const hasCritical = indicators.some(
-                    (i) => i.District === name && i.Status === "Critical"
-                  );
-                  const presentation = getDistrictMapPresentation(name, district.provinceColor);
-                  const labelLines = district.label.lines || [name.replace("Western Area ", "Western ")];
+                  const count   = getIndicatorCount(name);
+                  const hasCritical = indicators.some(i => i.District === name && i.Status === "Critical");
+                  const labelLines  = district.label.lines || [name];
 
                   return (
                     <g
                       key={name}
-                      className="group select-none"
+                      className="cursor-pointer select-none"
                       onClick={() => onSelectDistrict(isSelected ? null : name)}
-                      onMouseMove={(e) => handleMouseMove(e, name)}
+                      onMouseMove={e => handleMouseMove(e, name)}
                       onMouseLeave={handleMouseLeave}
                     >
                       <polygon
                         points={district.points}
-                        className={presentation.className}
-                        style={presentation.style}
+                        fill={fill}
+                        stroke={stroke.stroke}
+                        strokeWidth={stroke.strokeWidth}
+                        opacity={hoveredDistrict?.name === name && !isSelected ? 0.85 : 1}
+                        style={{ filter: isSelected ? "url(#glow)" : undefined, transition: "all 0.2s" }}
                       />
 
-                      {/* Live blinking critical beacon at the district label anchor */}
-                      {!isLowBandwidth && hasCritical && activeLayer === "yield" && (
-                        <circle
-                          cx={district.label.x}
-                          cy={district.label.y - 16}
-                          r="5"
-                          className="fill-red-500 opacity-65 animate-ping pointer-events-none"
-                        />
-                      )}
-
-                      {/* District label styled like the new reference map */}
+                      {/* District label */}
                       <text
                         x={district.label.x}
                         y={district.label.y}
                         textAnchor="middle"
-                        className="fill-black font-serif italic group-hover:fill-slate-950 font-medium pointer-events-none select-none"
-                        style={{ fontSize: district.label.size || 24 }}
+                        fill={isSelected ? "#f0fdf4" : "#042f2e"}
+                        fontWeight="700"
+                        pointerEvents="none"
+                        style={{ fontSize: district.label.size || 22, userSelect: "none" }}
                       >
                         {labelLines.map((line, idx) => (
-                          <tspan
-                            key={`${name}-${line}`}
-                            x={district.label.x}
-                            dy={idx === 0 ? 0 : (district.label.size || 24) * 0.95}
-                          >
+                          <tspan key={idx} x={district.label.x} dy={idx === 0 ? 0 : (district.label.size || 22) * 1}>
                             {line}
                           </tspan>
                         ))}
                       </text>
+
+                      {/* Indicator count badge */}
+                      {count > 0 && (
+                        <g transform={`translate(${district.label.x}, ${district.label.y - (district.label.size || 22) - 6})`}>
+                          <circle r="10" fill="#0f172a" stroke="#1e293b" strokeWidth="1.5" />
+                          {!isLowBandwidth && hasCritical && (
+                            <circle r="10" fill="none" stroke="#ef4444" strokeWidth="1.5" opacity="0.6" className="animate-ping" />
+                          )}
+                          <text
+                            textAnchor="middle"
+                            dy="0.35em"
+                            fill="#e2e8f0"
+                            fontWeight="800"
+                            style={{ fontSize: 9, userSelect: "none" }}
+                          >
+                            {count}
+                          </text>
+                        </g>
+                      )}
                     </g>
                   );
                 })}
               </g>
 
-              {/* Neighbour / ocean reference labels */}
-              <text x={MAP_W * 0.08} y={MAP_H * 0.78} className="fill-slate-500/70 font-mono font-bold text-[11px] tracking-wider pointer-events-none select-none italic">ATLANTIC OCEAN</text>
-              <text x={MAP_W * 0.64} y={MAP_H * 0.06} className="fill-slate-500/60 font-mono font-bold text-[11px] tracking-widest pointer-events-none select-none">GUINEA</text>
-              <text x={MAP_W * 0.78} y={MAP_H * 0.92} className="fill-slate-500/60 font-mono font-bold text-[11px] tracking-widest pointer-events-none select-none">LIBERIA</text>
+              {/* Ocean / country labels */}
+              <text x={MAP_W*0.07} y={MAP_H*0.82} fill="rgba(148,163,184,0.5)" fontFamily="monospace" fontSize="11" fontWeight="700" fontStyle="italic" pointerEvents="none" style={{letterSpacing:2}}>ATLANTIC OCEAN</text>
+              <text x={MAP_W*0.64} y={MAP_H*0.06} fill="rgba(148,163,184,0.4)" fontFamily="monospace" fontSize="10" fontWeight="700" pointerEvents="none" style={{letterSpacing:3}}>GUINEA</text>
+              <text x={MAP_W*0.78} y={MAP_H*0.93} fill="rgba(148,163,184,0.4)" fontFamily="monospace" fontSize="10" fontWeight="700" pointerEvents="none" style={{letterSpacing:3}}>LIBERIA</text>
             </svg>
 
-            {/* Custom Interactive Tooltip */}
+            {/* Hover tooltip */}
             {hoveredDistrict && (
               <div
-                style={{ left: `${tooltipPos.x}px`, top: `${tooltipPos.y}px` }}
-                className="absolute z-40 bg-[#070d19]/95 border border-slate-700/80 rounded-xl p-4 shadow-2xl w-64 pointer-events-none animate-in fade-in zoom-in-95 duration-150 backdrop-blur-md"
+                style={{ left: tooltipPos.x, top: tooltipPos.y }}
+                className="absolute z-40 bg-[#070d19]/95 border border-slate-700/80 rounded-xl p-4 shadow-2xl w-60 pointer-events-none backdrop-blur-md"
               >
                 <div className="flex items-center justify-between border-b border-slate-800 pb-2 mb-2.5">
                   <span className="text-xs font-bold text-slate-100 flex items-center gap-1.5">
@@ -570,438 +401,239 @@ export default function MapSection({
                     {hoveredDistrict.region}
                   </span>
                 </div>
-
-                {/* Performance stats by layer relevance */}
-                <div className="space-y-2 text-[11px] font-mono">
-                  <div className="flex justify-between items-center">
-                    <span className="text-slate-400">Rice Achieved:</span>
-                    <span className="text-emerald-400 font-bold">{hoveredDistrict.riceYieldAchieved} MT</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-slate-400">Cocoa Organic:</span>
-                    <span className="text-amber-500">{hoveredDistrict.cocoaYieldAchieved || 12} MT</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-slate-400">Roads Rehab:</span>
-                    <span className="text-teal-400">{hoveredDistrict.roadsRehabbed} Km</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-slate-400">M&E Facilities:</span>
-                    <span className="text-slate-200">{hoveredDistrict.facilitiesBuilt} Hubs</span>
-                  </div>
-                  <div className="flex justify-between items-center border-t border-slate-900 pt-2 mt-2">
-                    <span className="text-slate-400 font-bold">Farmer Revenue:</span>
-                    <span className="text-emerald-400 font-bold">${hoveredDistrict.farmerIncomeAverage}/Mo</span>
+                <div className="space-y-1.5 text-[11px] font-mono">
+                  <div className="flex justify-between"><span className="text-slate-400">Rice:</span><span className="text-emerald-400 font-bold">{hoveredDistrict.riceYieldAchieved} MT</span></div>
+                  <div className="flex justify-between"><span className="text-slate-400">Cocoa:</span><span className="text-amber-500 font-bold">{hoveredDistrict.cocoaYieldAchieved || 12} MT</span></div>
+                  <div className="flex justify-between"><span className="text-slate-400">Roads:</span><span className="text-teal-400 font-bold">{hoveredDistrict.roadsRehabbed} km</span></div>
+                  <div className="flex justify-between"><span className="text-slate-400">Facilities:</span><span className="text-slate-200 font-bold">{hoveredDistrict.facilitiesBuilt} hubs</span></div>
+                  <div className="flex justify-between border-t border-slate-900 pt-1.5 mt-1.5">
+                    <span className="text-slate-400 font-bold">Income:</span>
+                    <span className="text-emerald-400 font-bold">${hoveredDistrict.farmerIncomeAverage}/mo</span>
                   </div>
                 </div>
-
-                {/* Yield historical trend vector map */}
-                <div className="mt-3 border-t border-slate-900 pt-2">
-                  <span className="text-[9px] font-mono text-slate-500 uppercase flex items-center gap-1">
-                    <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
-                    Interactive Trajectory (23-26)
-                  </span>
-                  <div className="h-10 w-full mt-2 flex items-end justify-between relative bg-slate-950 p-1 rounded border border-slate-900/50">
-                    <svg className="absolute inset-0 w-full h-full p-1" viewBox="0 0 100 40" preserveAspectRatio="none">
-                      <path
-                        d={`M 0 ${40 - (hoveredDistrict.historicalTrend[0].yieldIndex * 0.22)} 
-                            L 33 ${40 - (hoveredDistrict.historicalTrend[1].yieldIndex * 0.22)} 
-                            L 66 ${40 - (hoveredDistrict.historicalTrend[2].yieldIndex * 0.22)} 
-                            L 100 ${40 - (hoveredDistrict.historicalTrend[3].yieldIndex * 0.22)}`}
-                        className="fill-none stroke-emerald-400 stroke-[1.5]"
+                {hoveredDistrict.historicalTrend && (
+                  <div className="mt-2.5 border-t border-slate-900 pt-2">
+                    <span className="text-[9px] font-mono text-slate-500 uppercase flex items-center gap-1 mb-1.5">
+                      <TrendingUp className="w-3 h-3 text-emerald-400" /> Trend 23–26
+                    </span>
+                    <svg className="w-full h-8" viewBox="0 0 100 32" preserveAspectRatio="none">
+                      <line x1="0" y1="16" x2="100" y2="16" stroke="#1e293b" strokeWidth="1" strokeDasharray="2 6" />
+                      <polyline
+                        points={hoveredDistrict.historicalTrend.map((t,i)=>`${i*(100/3)},${32-(t.yieldIndex*0.17)}`).join(" ")}
+                        fill="none" stroke="#10b981" strokeWidth="1.5"
                       />
-                      <line x1="0" y1="20" x2="100" y2="20" className="stroke-slate-800 stroke-1" strokeDasharray="2 15" />
                     </svg>
-                    {hoveredDistrict.historicalTrend.map((t, idx) => (
-                      <div key={idx} className="flex flex-col items-center justify-end z-10 w-full">
-                        <span className="text-[7.5px] text-slate-500 font-mono">{t.year}</span>
-                      </div>
-                    ))}
                   </div>
-                </div>
+                )}
               </div>
             )}
           </div>
 
-          {/* Floater overlay legend & meta details */}
-          <div className="border-t border-slate-900 pt-3.5 flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
-            <div>
-              <span className="text-[10px] font-mono text-slate-500 uppercase block tracking-wider">
-                {activeLayerMeta.title}
-              </span>
-              <div className="flex flex-wrap items-center gap-4 mt-2 select-none">
-                {activeLayerMeta.legend.map((leg, idx) => (
-                  <div key={idx} className="flex items-center gap-2 text-[10px] font-mono text-slate-400">
-                    <span className={`w-2.5 h-2.5 rounded-sm ${leg.color}`} />
-                    <span>{leg.label}</span>
-                  </div>
-                ))}
-              </div>
+          {/* Legend footer */}
+          <div className="border-t border-slate-900 px-5 py-3 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap gap-4">
+              {activeLayer === "yield" && <>
+                <div className="flex items-center gap-1.5 text-[10px] font-mono text-slate-400"><span className="w-2.5 h-2.5 rounded-sm bg-[#34d399]" /> On Track (&gt;80%)</div>
+                <div className="flex items-center gap-1.5 text-[10px] font-mono text-slate-400"><span className="w-2.5 h-2.5 rounded-sm bg-[#10b981]" /> Developing</div>
+                <div className="flex items-center gap-1.5 text-[10px] font-mono text-slate-400"><span className="w-2.5 h-2.5 rounded-sm bg-[#0d9488]" /> Critical Alert</div>
+              </>}
+              {activeLayer === "infra" && <>
+                <div className="flex items-center gap-1.5 text-[10px] font-mono text-slate-400"><span className="w-2.5 h-2.5 rounded-sm bg-[#0ea5e9]" /> Major Corridor (&gt;25 km)</div>
+                <div className="flex items-center gap-1.5 text-[10px] font-mono text-slate-400"><span className="w-2.5 h-2.5 rounded-sm bg-[#0e7490]" /> Minor Routes</div>
+              </>}
+              {activeLayer === "climate" && <>
+                <div className="flex items-center gap-1.5 text-[10px] font-mono text-slate-400"><span className="w-2.5 h-2.5 rounded-sm bg-[#8b5cf6]" /> Coastal Flood Risk</div>
+                <div className="flex items-center gap-1.5 text-[10px] font-mono text-slate-400"><span className="w-2.5 h-2.5 rounded-sm bg-[#10b981]" /> Low Risk</div>
+              </>}
             </div>
-
-            {/* GIS Scale Yard widget */}
-            <div className="flex flex-col items-end shrink-0 font-mono text-[9px] text-slate-500">
-              <span className="mb-1 text-slate-400">GIS GRAPHIC SCALE</span>
-              <div className="flex items-center gap-1.5 bh-slate-950 px-2 py-0.5 rounded border border-slate-900">
-                <span>0 Km</span>
-                <span className="w-12 h-1 bg-slate-800 flex items-center justify-between"><span className="w-0.5 h-2 bg-slate-400" /><span className="w-0.5 h-2 bg-slate-400" /></span>
-                <span>50 Km</span>
-              </div>
+            <div className="font-mono text-[9px] text-slate-500 flex items-center gap-2">
+              <span>GIS SCALE</span>
+              <span className="w-10 h-px bg-slate-700 inline-block" />
+              <span>50 Km</span>
             </div>
           </div>
-
         </div>
 
-        {/* Sidebar Info & Active Selection Panel (Right Panel) */}
-        <div className="xl:col-span-4 flex flex-col gap-4">
-          
-          {/* Tab selectors for GIS Telemetry vs Side-by-Side Radar comparison */}
-          <div className="bg-[#050914] border border-slate-900 rounded-2xl p-1.5 flex gap-1.5 shrink-0 select-none">
-            <button
-              onClick={() => setRightPanelTab("telemetry")}
+        {/* ════ RIGHT PANEL ════ */}
+        <div className="xl:w-72 border-t xl:border-t-0 xl:border-l border-slate-800 flex flex-col">
+
+          {/* Tab switcher */}
+          <div className="p-3 border-b border-slate-800 flex gap-1.5">
+            <button onClick={() => setRightPanelTab("telemetry")}
               className={`flex-1 text-[11px] font-mono font-bold flex items-center justify-center gap-1.5 py-2 rounded-lg border transition-all cursor-pointer ${
                 rightPanelTab === "telemetry"
-                  ? "bg-slate-950 border-emerald-550/30 text-emerald-400 font-bold shadow-md"
-                  : "bg-transparent border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-950/40"
-              }`}
-            >
-              <Layers className="w-3.5 h-3.5" />
-              GIS Telemetry
+                  ? "bg-slate-900 border-emerald-500/30 text-emerald-400"
+                  : "bg-transparent border-transparent text-slate-500 hover:text-slate-300"
+              }`}>
+              <Layers className="w-3.5 h-3.5" /> GIS Telemetry
             </button>
-            <button
-              onClick={() => setRightPanelTab("compare")}
+            <button onClick={() => setRightPanelTab("compare")}
               className={`flex-1 text-[11px] font-mono font-bold flex items-center justify-center gap-1.5 py-2 rounded-lg border transition-all cursor-pointer ${
                 rightPanelTab === "compare"
-                  ? "bg-slate-950 border-cyan-550/30 text-cyan-400 font-bold shadow-md"
-                  : "bg-transparent border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-950/40"
-              }`}
-            >
-              <GitCompare className="w-3.5 h-3.5 animate-pulse" />
-              Radar Comparer
+                  ? "bg-slate-900 border-cyan-500/30 text-cyan-400"
+                  : "bg-transparent border-transparent text-slate-500 hover:text-slate-300"
+              }`}>
+              <GitCompare className="w-3.5 h-3.5" /> Radar
             </button>
           </div>
 
           {rightPanelTab === "telemetry" ? (
-            <>
-              {/* McKinsey GIS Overlays selectors */}
-              <div className="bg-[#050914] border border-slate-900 rounded-2xl p-4 space-y-3 shrink-0">
-                <span className="text-[10px] font-mono uppercase text-slate-500 font-bold block pb-2 border-b border-slate-900">
-                  Thematic Overlay Layers Settings
-                </span>
-                <div className="flex flex-col gap-2">
-                  <button
-                    onClick={() => setActiveLayer("yield")}
-                    className={`text-xs font-mono font-bold flex items-center justify-between p-3 rounded-xl border text-left cursor-pointer transition-all ${
-                      activeLayer === "yield"
-                        ? "bg-slate-950 border-emerald-500/30 text-emerald-400 font-bold shadow-lg"
-                        : "bg-slate-950/30 border-slate-950 text-slate-500 hover:text-slate-300 hover:bg-slate-950/60"
-                    }`}
-                  >
-                    <span className="flex items-center gap-2">
-                      <Activity className="w-4 h-4" />
-                      Yield Progress Heatmap
-                    </span>
-                    <span className="text-[9px] bg-slate-900 text-slate-400 px-1.5 py-0.5 rounded uppercase">On track</span>
-                  </button>
+            <div className="flex-1 flex flex-col gap-4 p-4 overflow-y-auto">
 
-                  <button
-                    onClick={() => setActiveLayer("infra")}
-                    className={`text-xs font-mono font-bold flex items-center justify-between p-3 rounded-xl border text-left cursor-pointer transition-all ${
-                      activeLayer === "infra"
-                        ? "bg-slate-950 border-teal-500/30 text-teal-400 font-bold shadow-lg"
-                        : "bg-slate-950/30 border-slate-950 text-slate-500 hover:text-slate-300 hover:bg-slate-950/60"
-                    }`}
-                  >
+              {/* Layer selectors */}
+              <div className="space-y-2">
+                <span className="text-[10px] font-mono uppercase text-slate-500 font-bold tracking-wider">Thematic Overlay</span>
+                {(["yield","infra","climate"] as GISLayer[]).map(layer => (
+                  <button key={layer} onClick={() => setActiveLayer(layer)}
+                    className={`w-full text-xs font-mono font-bold flex items-center justify-between p-2.5 rounded-xl border text-left cursor-pointer transition-all ${
+                      activeLayer === layer
+                        ? layer==="yield" ? "bg-slate-950 border-emerald-500/30 text-emerald-400"
+                        : layer==="infra" ? "bg-slate-950 border-teal-500/30 text-teal-400"
+                        : "bg-slate-950 border-indigo-500/30 text-indigo-400"
+                        : "bg-slate-950/30 border-slate-900 text-slate-500 hover:text-slate-300"
+                    }`}>
                     <span className="flex items-center gap-2">
-                      <Route className="w-4 h-4" />
-                      Feeder Road Density
+                      {layer==="yield" && <Activity className="w-3.5 h-3.5" />}
+                      {layer==="infra" && <Route className="w-3.5 h-3.5" />}
+                      {layer==="climate" && <AlertTriangle className="w-3.5 h-3.5" />}
+                      {layer==="yield" ? "Yield Progress" : layer==="infra" ? "Feeder Road Density" : "Climate Hazard"}
                     </span>
-                    <span className="text-[9px] bg-slate-900 text-slate-400 px-1.5 py-0.5 rounded uppercase">KM index</span>
-                  </button>
-
-                  <button
-                    onClick={() => setActiveLayer("climate")}
-                    className={`text-xs font-mono font-bold flex items-center justify-between p-3 rounded-xl border text-left cursor-pointer transition-all ${
-                      activeLayer === "climate"
-                        ? "bg-slate-950 border-indigo-500/30 text-indigo-400 font-bold shadow-lg"
-                        : "bg-slate-950/30 border-slate-950 text-slate-500 hover:text-slate-300 hover:bg-slate-950/60"
-                    }`}
-                  >
-                    <span className="flex items-center gap-2">
-                      <AlertTriangle className="w-4 h-4" />
-                      Climate Monsoon Hazard
+                    <span className="text-[9px] bg-slate-900 text-slate-400 px-1.5 py-0.5 rounded uppercase">
+                      {layer==="yield"?"On Track":layer==="infra"?"KM":"Wet Risk"}
                     </span>
-                    <span className="text-[9px] bg-slate-900 text-slate-400 px-1.5 py-0.5 rounded uppercase">Wet risk</span>
                   </button>
-                </div>
+                ))}
               </div>
 
-              {/* Regional Context information board */}
-              <div className="bg-[#050914] border border-slate-900 rounded-2xl p-4 flex-grow flex flex-col justify-between">
-                <div className="space-y-4">
-                  <h5 className="text-xs font-mono font-bold tracking-wider uppercase text-slate-300 border-b border-slate-900 pb-2.5 flex items-center gap-2">
-                    <Server className="w-4 h-4 text-emerald-400" />
-                    Live GIS Spatial Database Telemetry
-                  </h5>
-
-                  <div className="bg-slate-950 border border-slate-900 p-3.5 rounded-xl space-y-2">
-                    <div className="text-[9px] font-mono tracking-widest uppercase text-slate-500">Selected Spatial Region</div>
-                    <div className="text-slate-100 font-bold text-sm flex items-center gap-2">
-                      <MapPin className="w-4 h-4 text-emerald-400 shrink-0" />
-                      {selectedDistrict ? `${selectedDistrict} District` : "All Regional Districts Linked"}
-                    </div>
-                    <p className="text-[11px] text-slate-400 leading-relaxed font-mono">
-                      {selectedDistrict 
-                        ? `Operations mapped to custom district polygon ${selectedDistrict}. Tracking feeder road buffers and swamp water management bounds.` 
-                        : "Viewing composite national telemetry indices. Click on any contiguous map boundary to inspect regional sub-metrics."}
-                    </p>
+              {/* Telemetry data */}
+              <div className="flex-1 bg-slate-950/60 border border-slate-900 rounded-2xl p-4 space-y-4">
+                <h5 className="text-xs font-mono font-bold uppercase text-slate-300 flex items-center gap-2">
+                  <Server className="w-4 h-4 text-emerald-400" /> Live Spatial Telemetry
+                </h5>
+                <div className="bg-slate-950 border border-slate-900 p-3 rounded-xl space-y-1.5">
+                  <div className="text-[9px] font-mono uppercase text-slate-500 tracking-widest">Selected Region</div>
+                  <div className="text-slate-100 font-bold text-sm flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-emerald-400 shrink-0" />
+                    {selectedDistrict ? `${selectedDistrict} District` : "All Districts"}
                   </div>
-
-                  {/* District detailed dynamic parameters */}
-                  {selectedDistrict ? (
-                    <div className="space-y-2 pt-2 text-xs font-mono">
-                      <div className="flex justify-between py-1 border-b border-slate-900/45">
-                        <span className="text-slate-500">M&E Regional Hub:</span>
-                        <span className="text-slate-300 font-bold">{selectedDistrict} Central</span>
-                      </div>
-                      <div className="flex justify-between py-1 border-b border-slate-900/45">
-                        <span className="text-slate-500">Methane Swamp Index:</span>
-                        <span className="text-emerald-400 font-bold">14.6 ppm</span>
-                      </div>
-                      <div className="flex justify-between py-1 border-b border-slate-900/45">
-                        <span className="text-slate-500">Feeder Access Ratio:</span>
-                        <span className="text-teal-400 font-bold">0.86 (High)</span>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-2.5 pt-2 text-xs font-mono text-slate-500">
-                      <p className="text-[11px] leading-relaxed italic">
-                        Note: The GIS lens now uses the current 16-district Sierra Leone layout so Falaba and Karene are tracked as independent AVDP activity areas alongside district yield, road, climate, and market-access indicators.
-                      </p>
-                    </div>
-                  )}
+                  <p className="text-[10px] text-slate-400 leading-relaxed font-mono">
+                    {selectedDistrict
+                      ? `District polygon active. Tracking feeder road buffers and swamp management bounds.`
+                      : "Composite national telemetry. Click any district to inspect sub-metrics."}
+                  </p>
                 </div>
 
-                <div className="mt-6 pt-4 border-t border-slate-900 space-y-2.5 font-mono">
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="text-slate-500">Connected Targets:</span>
+                {selectedDistrict && (
+                  <div className="space-y-1.5 text-xs font-mono">
+                    <div className="flex justify-between py-1 border-b border-slate-900/50">
+                      <span className="text-slate-500">M&E Hub:</span>
+                      <span className="text-slate-300 font-bold">{selectedDistrict} Central</span>
+                    </div>
+                    <div className="flex justify-between py-1 border-b border-slate-900/50">
+                      <span className="text-slate-500">Swamp Index:</span>
+                      <span className="text-emerald-400 font-bold">14.6 ppm</span>
+                    </div>
+                    <div className="flex justify-between py-1 border-b border-slate-900/50">
+                      <span className="text-slate-500">Feeder Access:</span>
+                      <span className="text-teal-400 font-bold">0.86 (High)</span>
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-1.5 font-mono pt-2 border-t border-slate-900">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-slate-500">Targets:</span>
                     <span className="text-slate-300 font-bold">{indicators.length} channels</span>
                   </div>
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="text-slate-500">Averages Progress:</span>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-slate-500">Avg Progress:</span>
                     <span className="text-emerald-400 font-bold">{nationalAverages.progress}%</span>
                   </div>
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="text-slate-500">Critical Alarms Raised:</span>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-slate-500">Critical:</span>
                     <span className="text-red-400 font-bold">{nationalAverages.critical} metrics</span>
                   </div>
                 </div>
               </div>
-            </>
+            </div>
           ) : (
-            /* Radar Comparison Section styled to McKinsey geographics guidelines */
-            <div className="bg-[#050914] border border-slate-900 rounded-2xl p-4 flex-grow flex flex-col justify-between" id="gis-radar-comparator-pane">
-              <div className="space-y-4">
-                <h5 className="text-xs font-mono font-bold tracking-wider uppercase text-slate-300 border-b border-slate-900 pb-2.5 flex items-center gap-2">
-                  <GitCompare className="w-4 h-4 text-cyan-400" />
-                  Dual-District Radar Lexicon
-                </h5>
+            /* Radar Comparison */
+            <div className="flex-1 flex flex-col gap-4 p-4 overflow-y-auto">
+              <h5 className="text-xs font-mono font-bold uppercase text-slate-300 flex items-center gap-2">
+                <GitCompare className="w-4 h-4 text-cyan-400" /> District Radar
+              </h5>
 
-                {/* Styled Dropdowns for targets choice */}
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="space-y-1">
-                    <label className="text-[9px] font-mono uppercase text-emerald-400 block font-bold">District Alpha (A)</label>
-                    <select
-                      value={districtAlpha}
-                      onChange={(e) => setDistrictAlpha(e.target.value)}
-                      className="w-full bg-slate-950 text-slate-100 border border-slate-900 rounded-lg p-2 text-xs font-mono focus:border-emerald-500 focus:outline-none cursor-pointer"
-                    >
-                      {SIERRA_LEONE_DISTRICTS.map(d => (
-                        <option key={d.code} value={d.name}>{d.name}</option>
-                      ))}
+              <div className="grid grid-cols-2 gap-2">
+                {[{label:"Alpha",val:districtAlpha,set:setDistrictAlpha,cls:"emerald"},{label:"Beta",val:districtBeta,set:setDistrictBeta,cls:"cyan"}].map(({label,val,set,cls}) => (
+                  <div key={label} className="space-y-1">
+                    <label className={`text-[9px] font-mono uppercase font-bold text-${cls}-400`}>{label}</label>
+                    <select value={val} onChange={e=>set(e.target.value)}
+                      className="w-full bg-slate-950 text-slate-100 border border-slate-900 rounded-lg p-1.5 text-xs font-mono focus:outline-none cursor-pointer">
+                      {SIERRA_LEONE_DISTRICTS.map(d => <option key={d.code} value={d.name}>{d.name}</option>)}
                     </select>
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-[9px] font-mono uppercase text-cyan-400 block font-bold">District Beta (B)</label>
-                    <select
-                      value={districtBeta}
-                      onChange={(e) => setDistrictBeta(e.target.value)}
-                      className="w-full bg-slate-950 text-slate-100 border border-slate-900 rounded-lg p-2 text-xs font-mono focus:border-cyan-500 focus:outline-none cursor-pointer"
-                    >
-                      {SIERRA_LEONE_DISTRICTS.map(d => (
-                        <option key={d.code} value={d.name}>{d.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                {/* Anchor live map selections */}
-                {selectedDistrict && (
-                  <div className="flex gap-2 text-[9px] font-mono select-none">
-                    <button
-                      onClick={() => setDistrictAlpha(selectedDistrict)}
-                      className="flex-grow bg-emerald-950/40 border border-emerald-900 text-emerald-400 py-1.5 px-2 rounded-lg hover:bg-emerald-950/70 transition-colors cursor-pointer text-center"
-                    >
-                      Set Alpha A = {selectedDistrict}
-                    </button>
-                    <button
-                      onClick={() => setDistrictBeta(selectedDistrict)}
-                      className="flex-grow bg-cyan-950/40 border border-cyan-900 text-cyan-400 py-1.5 px-2 rounded-lg hover:bg-cyan-950/70 transition-colors cursor-pointer text-center"
-                    >
-                      Set Beta B = {selectedDistrict}
-                    </button>
-                  </div>
-                )}
-
-                {/* SVG Radar Chart Display with glowing rings and ticks */}
-                <div className="flex flex-col items-center justify-center py-2.5 bg-slate-950/50 border border-slate-900/60 rounded-xl relative select-none">
-                  <svg
-                    width="260"
-                    height="230"
-                    viewBox="35 30 210 200"
-                    className="overflow-visible"
-                  >
-                    {/* Concentric pentagons */}
-                    <polygon points={getGridPolygonPoints(50)} className="fill-none stroke-slate-800/60 stroke-[1]" />
-                    <polygon points={getGridPolygonPoints(100)} className="fill-none stroke-slate-800 stroke-[1] stroke-dasharray-[2 2]" />
-                    <polygon points={getGridPolygonPoints(150)} className="fill-none stroke-slate-700/80 stroke-[1]" />
-
-                    {/* Scale tick notations */}
-                    <text x={cx + 10} y={cy - (50/150)*rMax + 3} className="fill-slate-650 font-mono text-[7px] text-slate-500">50%</text>
-                    <text x={cx + 10} y={cy - (100/150)*rMax + 3} className="fill-slate-500 font-mono text-[7px] text-slate-400">100%</text>
-                    <text x={cx + 10} y={cy - (150/150)*rMax + 3} className="fill-slate-450 font-mono text-[7px] text-slate-300">150%</text>
-
-                    {/* Radial spokes axis grids */}
-                    {gridLines.map((line, idx) => (
-                      <line
-                        key={idx}
-                        x1={line.x1}
-                        y1={line.y1}
-                        x2={line.x2}
-                        y2={line.y2}
-                        className="stroke-slate-800/80 stroke-[1]"
-                      />
-                    ))}
-
-                    {/* Alpha Layer Polygon (Emerald) */}
-                    <polygon
-                      points={getPointsString(metricsAlpha)}
-                      className="fill-emerald-500/25 stroke-emerald-400 stroke-[2] transition-all duration-300"
-                    />
-
-                    {/* Beta Layer Polygon (Cyan) */}
-                    <polygon
-                      points={getPointsString(metricsBeta)}
-                      className="fill-cyan-500/25 stroke-cyan-400 stroke-[2] transition-all duration-300"
-                    />
-
-                    {/* Markers on Alpha Vertices */}
-                    {metricsAlpha.map((m, idx) => {
-                      const pt = getRadarPoint(idx, m.val);
-                      return (
-                        <circle
-                          key={`pa-${idx}`}
-                          cx={pt.x}
-                          cy={pt.y}
-                          r="3"
-                          className="fill-emerald-400 stroke-slate-950 stroke-[1.2]"
-                        />
-                      );
-                    })}
-
-                    {/* Markers on Beta Vertices */}
-                    {metricsBeta.map((m, idx) => {
-                      const pt = getRadarPoint(idx, m.val);
-                      return (
-                        <circle
-                          key={`pb-${idx}`}
-                          cx={pt.x}
-                          cy={pt.y}
-                          r="3"
-                          className="fill-cyan-400 stroke-slate-950 stroke-[1.2]"
-                        />
-                      );
-                    })}
-
-                    {/* Outer Label text mappings */}
-                    {metricsAlpha.map((m, idx) => {
-                      const lc = getLabelCoords(idx);
-                      return (
-                        <text
-                          key={`lbl-${idx}`}
-                          x={lc.x}
-                          y={lc.y}
-                          dy={lc.dy}
-                          textAnchor={lc.anchor}
-                          className="fill-slate-400 font-mono text-[8px] font-bold uppercase tracking-tight"
-                        >
-                          {m.label}
-                        </text>
-                      );
-                    })}
-                  </svg>
-
-                  {/* High Contrast Legends */}
-                  <div className="flex gap-4 border-t border-slate-900/60 pt-2 w-full justify-center px-4">
-                    <div className="flex items-center gap-1.5 text-[10px] font-mono">
-                      <span className="w-2.5 h-1.5 bg-emerald-500 rounded-sm inline-block" />
-                      <span className="text-slate-200 font-bold">{districtAlpha} (A)</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 text-[10px] font-mono">
-                      <span className="w-2.5 h-1.5 bg-cyan-400 rounded-sm inline-block" />
-                      <span className="text-slate-200 font-bold">{districtBeta} (B)</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* side-by-side exact delta computations table list */}
-                <div className="space-y-1.5 text-[11px] font-mono bg-slate-950/30 border border-slate-900 rounded-xl p-3">
-                  <span className="text-[9px] text-slate-500 font-bold uppercase block border-b border-slate-900 pb-1.5 mb-2">Metrics comparison delta</span>
-                  
-                  {metricsAlpha.map((m, idx) => {
-                    const valueB = metricsBeta[idx].val;
-                    const delta = m.val - valueB;
-                    let deltaColor = "text-slate-405";
-                    let deltaSymbol = "±0";
-
-                    if (delta > 0) {
-                      deltaColor = "text-emerald-400";
-                      deltaSymbol = `+${delta}`;
-                    } else if (delta < 0) {
-                      deltaColor = "text-rose-400";
-                      deltaSymbol = `${delta}`;
-                    }
-
-                    return (
-                      <div key={idx} className="flex justify-between items-center py-0.5 border-b border-slate-950 last:border-0 pb-1">
-                        <span className="text-slate-400">{m.label}:</span>
-                        <div className="flex items-center gap-2">
-                          <span className="text-emerald-400 font-bold">{m.val}%</span>
-                          <span className="text-slate-600">vs</span>
-                          <span className="text-cyan-400 font-bold">{valueB}%</span>
-                          <span className={`${deltaColor} font-bold text-[10px] ml-1`}>({deltaSymbol}%)</span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                ))}
               </div>
 
-              {/* Reset to GIS indicators */}
-              <div className="pt-3 border-t border-slate-900 flex justify-center">
-                <button
-                  onClick={() => setRightPanelTab("telemetry")}
-                  className="text-[10px] text-slate-400 hover:text-emerald-400 font-mono flex items-center gap-1 cursor-pointer transition-colors"
-                >
-                  <Layers className="w-3.5 h-3.5" />
-                  Observe GIS Thematic Layers
-                </button>
+              {selectedDistrict && (
+                <div className="flex gap-1.5 text-[9px] font-mono">
+                  <button onClick={() => setDistrictAlpha(selectedDistrict)}
+                    className="flex-1 bg-emerald-950/40 border border-emerald-900 text-emerald-400 py-1.5 rounded-lg hover:bg-emerald-950/70 cursor-pointer">
+                    A = {selectedDistrict}
+                  </button>
+                  <button onClick={() => setDistrictBeta(selectedDistrict)}
+                    className="flex-1 bg-cyan-950/40 border border-cyan-900 text-cyan-400 py-1.5 rounded-lg hover:bg-cyan-950/70 cursor-pointer">
+                    B = {selectedDistrict}
+                  </button>
+                </div>
+              )}
+
+              <div className="bg-slate-950/50 border border-slate-900 rounded-xl p-2 flex justify-center">
+                <svg width="240" height="220" viewBox="35 30 210 200" className="overflow-visible">
+                  {[50,100,150].map(s => <polygon key={s} points={gridPts(s)} fill="none" stroke={s===100?"#334155":"#1e293b"} strokeWidth="1" />)}
+                  {spokes.map((sp,i) => <line key={i} x1={cx} y1={cy} x2={sp.x2} y2={sp.y2} stroke="#1e293b" strokeWidth="1" />)}
+
+                  <polygon points={toPoints(metricsAlpha)} fill="rgba(52,211,153,0.15)" stroke="#34d399" strokeWidth="2" />
+                  <polygon points={toPoints(metricsBeta)}  fill="rgba(34,211,238,0.15)"  stroke="#22d3ee"  strokeWidth="2" />
+
+                  {metricsAlpha.map((m,i) => { const p=radarPoint(i,m.val); return <circle key={i} cx={p.x} cy={p.y} r="3" fill="#34d399" stroke="#0f172a" strokeWidth="1.5" />; })}
+                  {metricsBeta.map((m,i)  => { const p=radarPoint(i,m.val); return <circle key={i} cx={p.x} cy={p.y} r="3" fill="#22d3ee"  stroke="#0f172a" strokeWidth="1.5" />; })}
+
+                  {metricsAlpha.map((m,i) => {
+                    const lc = labelCoords(i);
+                    return (
+                      <text key={i} x={lc.x} y={lc.y} textAnchor={lc.anchor} fill="#94a3b8" fontSize="7.5" fontFamily="monospace">
+                        {m.label}
+                      </text>
+                    );
+                  })}
+                </svg>
+              </div>
+
+              <div className="flex gap-4 text-[10px] font-mono justify-center">
+                <span className="flex items-center gap-1.5 text-emerald-400"><span className="w-3 h-0.5 bg-emerald-400 inline-block" /> {districtAlpha}</span>
+                <span className="flex items-center gap-1.5 text-cyan-400"><span className="w-3 h-0.5 bg-cyan-400 inline-block" /> {districtBeta}</span>
+              </div>
+
+              <div className="space-y-1.5 text-[11px] font-mono border-t border-slate-900 pt-3">
+                {metricsAlpha.map((ma, i) => {
+                  const mb = metricsBeta[i];
+                  const diff = ma.val - mb.val;
+                  return (
+                    <div key={ma.label} className="flex justify-between items-center text-xs">
+                      <span className="text-slate-500 truncate mr-2">{ma.label}</span>
+                      <span className="flex items-center gap-3 shrink-0">
+                        <span className="text-emerald-400 w-8 text-right">{ma.val}%</span>
+                        <span className={`w-8 text-right font-bold ${diff>0?"text-emerald-400":diff<0?"text-red-400":"text-slate-500"}`}>{diff>0?"+":""}{diff}</span>
+                        <span className="text-cyan-400 w-8 text-right">{mb.val}%</span>
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
-
         </div>
-
       </div>
     </div>
   );
