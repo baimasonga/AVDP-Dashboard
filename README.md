@@ -41,28 +41,34 @@ Migrations live in `supabase/migrations/`.
 4. Run:
    ```
    npm run dev      # dev server on http://localhost:3000
-   npm run build    # production build (vite + esbuild server bundle)
-   npm run start    # run the production build
+   npm run build    # production static build for Cloudflare Workers
+   npm run build:server # optional self-hosted build (Vite + Express bundle)
+   npm run start    # run the optional self-hosted production build
    npm run lint     # typecheck (tsc --noEmit)
    ```
 
-## Deploy (Cloudflare + Supabase)
+## Deploy (Cloudflare Workers + Supabase)
 
-The recommended hosting is **Cloudflare** for the static frontend (served from
-its global edge) plus a **Supabase Edge Function** for the AI advisor — no
-long-running server to operate.
+The production URL uses **Cloudflare Workers Static Assets**
+(`avdp-dashboard.mohamedbangura.workers.dev`) for the Vite frontend plus a
+**Supabase Edge Function** for the AI advisor — no long-running server to
+operate.
 
-**Frontend → Cloudflare (Connect to Git)**
-1. Cloudflare dashboard → **Workers & Pages → Create → Connect to Git** →
-   select `baimasonga/AVDP-Dashboard`, branch `main`.
-2. Build command: `npm run build:web` · Output directory: `dist`.
-3. Add environment variables: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`.
-4. Cloudflare rebuilds and deploys automatically on every push to `main`.
+**Frontend → Cloudflare Workers (Connect to Git)**
+1. Cloudflare dashboard → **Workers & Pages → Workers → Connect to Git** →
+   select `baimasonga/AVDP-Dashboard`, production branch `main`.
+2. Build command: `npm run build` · deploy command: `npx wrangler deploy`.
+3. `wrangler.toml` points Workers Static Assets at `./dist` and enables
+   single-page-app fallback for URLs like `/?tab=gis&district=Kailahun`.
+4. Add environment variables: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`.
+5. Cloudflare rebuilds and deploys automatically after the PR is merged into
+   the configured production branch. If a rebuild still shows the old map,
+   confirm the Worker is connected to that branch and not an older preview.
 
-> No `_redirects` file is needed: the app navigates via query parameters
-> (`?tab=…&district=…`) on a single `/` path, so static-asset serving of
-> `index.html` is sufficient. (A `/* /index.html 200` rule is rejected by
-> Cloudflare's static-assets deploy as a redirect loop.)
+For a manual deploy from a machine with Wrangler credentials:
+```
+npm run deploy:worker
+```
 
 **AI advisor → Supabase Edge Function** (`supabase/functions/advisor`)
 - Deploy: `supabase functions deploy advisor` (already deployed in this project).
@@ -71,12 +77,15 @@ long-running server to operate.
   graceful fallback). `SUPABASE_URL` / `SUPABASE_ANON_KEY` are injected automatically.
 
 **After deploy**
-- In Supabase Auth settings, set the **Site URL / redirect URLs** to your Pages domain.
+- In Supabase Auth settings, set the **Site URL / redirect URLs** to your Workers domain.
 - Enable **leaked-password protection** in Supabase Auth (recommended).
 - The daily report `pg_cron` job already runs on Supabase — nothing to host.
 
 > `server.ts` is only used for local dev (and optional self-hosting via
-> `npm run build` + `npm run start`); it is not part of the Cloudflare deployment.
+> `npm run build:server` + `npm run start`); it is not part of the Cloudflare deployment.
+
+The repo includes `.node-version` so Cloudflare Pages and other Node-aware hosts
+use a Node runtime compatible with the current Vite React plugin during rebuilds.
 
 ## Roles (RBAC)
 
