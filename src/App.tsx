@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { User, UserRole, Indicator, ThresholdAlert, SyncStatus } from "./types";
 import { getEnrichedIndicators } from "./data";
+import { supabase } from "./lib/supabase";
+import * as db from "./lib/db";
+import { getQueue, enqueue, removeFromQueue } from "./lib/offlineQueue";
 import AuthModal from "./components/AuthModal";
 import MapSection from "./components/MapSection";
 import IndicatorTable from "./components/IndicatorTable";
@@ -11,6 +14,9 @@ import ExecutiveAnalytics from "./components/ExecutiveAnalytics";
 import YieldForecasting from "./components/YieldForecasting";
 import MarketInformation from "./components/MarketInformation";
 import CropCalendar from "./components/CropCalendar";
+import ProactiveInsights from "./components/ProactiveInsights";
+import GenderAnalytics from "./components/GenderAnalytics";
+import ReportsPanel from "./components/ReportsPanel";
 import { 
   Building2, Globe, Shield, RefreshCw, Radio, HardDrive, 
   Wifi, WifiOff, FileSpreadsheet, Layers, Bell, Bot, History,
@@ -37,12 +43,49 @@ export default function App() {
   const [syncStatus, setSyncStatus] = useState<SyncStatus>({
     lastSyncTime: null,
     isOnline: navigator.onLine,
-    pendingChangesCount: 0
+    pendingChangesCount: getQueue().length
   });
+
+  // Optimistically apply an indicator edit to local state + cache.
+  const applyLocalIndicatorEdit = (id: string, baseline: number, achieved: number) => {
+    setIndicators(prev => {
+      const next = prev.map(it => {
+        if (it.IndicatorID !== id) return it;
+        const progress = baseline > 0 ? parseFloat(((achieved / baseline) * 100).toFixed(1)) : 100;
+        const status: Indicator["Status"] =
+          progress < 100 ? "Critical" : progress < 130 ? "Need Attention" : "On Track";
+        return { ...it, BaselineValue: baseline, AchievedValue: achieved, Progress: progress, Status: status, LastUpdated: new Date().toISOString() };
+      });
+      localStorage.setItem("avdp_cached_indicators", JSON.stringify(next));
+      return next;
+    });
+  };
+
+  // Replay any queued offline edits once connectivity returns.
+  const flushOfflineQueue = async () => {
+    const queue = getQueue();
+    if (queue.length === 0 || !currentUser) return;
+    for (const item of queue) {
+      try {
+        await db.updateIndicator(item.id, item.baseline, item.achieved, currentUser);
+        removeFromQueue(item.id);
+      } catch (err) {
+        console.warn(`Failed to replay queued edit for ${item.id}; will retry later.`, err);
+      }
+    }
+    setSyncStatus(prev => ({ ...prev, pendingChangesCount: getQueue().length }));
+    await syncWithServer();
+  };
 
   const [loading, setLoading] = useState<boolean>(true);
   const [syncingIndicator, setSyncingIndicator] = useState<boolean>(false);
-  const [activeTab, setActiveTab] = useState<"analytics" | "markets" | "calendar">("analytics");
+
+  // Initialize tab + district from the URL so views are shareable/deep-linkable
+  const initialParams = new URLSearchParams(window.location.search);
+  const initialTab = initialParams.get("tab");
+  const [activeTab, setActiveTab] = useState<"analytics" | "markets" | "calendar">(
+    initialTab === "markets" || initialTab === "calendar" ? initialTab : "analytics"
+  );
 
   // --- COMPREHENSIVE DATA SYNCHRONIZATION INTERFACE ---
 
@@ -71,6 +114,15 @@ export default function App() {
     // Initial query check
     syncWithServer();
 
+    // Restore any existing Supabase auth session, and track auth changes
+    db.getCurrentUser().then(setCurrentUser).catch(() => {});
+    const { data: authSub } = supabase.auth.onAuthStateChange(async () => {
+      const u = await db.getCurrentUser().catch(() => null);
+      setCurrentUser(u);
+      // Logs become readable/insertable once signed in — refresh.
+      syncWithServer();
+    });
+
     // Setup network status listeners
     const handleOnline = () => setSyncStatus(prev => ({ ...prev, isOnline: true }));
     const handleOffline = () => setSyncStatus(prev => ({ ...prev, isOnline: false }));
@@ -81,33 +133,54 @@ export default function App() {
     return () => {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
+      authSub.subscription.unsubscribe();
     };
   }, []);
 
-  // Sync state functions
+  // Replay queued offline edits when we come back online or sign in.
+  useEffect(() => {
+    if (syncStatus.isOnline && currentUser && syncStatus.pendingChangesCount > 0) {
+      flushOfflineQueue();
+    }
+    const onReconnect = () => flushOfflineQueue();
+    window.addEventListener("online", onReconnect);
+    return () => window.removeEventListener("online", onReconnect);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [syncStatus.isOnline, currentUser]);
+
+  // Apply any ?district= from the URL on first load
+  useEffect(() => {
+    const d = initialParams.get("district");
+    if (d) setSelectedDistrict(d);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Keep the URL in sync with the active tab + selected district (shareable links)
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (activeTab !== "analytics") params.set("tab", activeTab);
+    if (selectedDistrict) params.set("district", selectedDistrict);
+    const qs = params.toString();
+    window.history.replaceState(null, "", qs ? `?${qs}` : window.location.pathname);
+  }, [activeTab, selectedDistrict]);
+
+  // Pull the latest data from Supabase, caching it locally for offline use.
   const syncWithServer = async () => {
     setSyncingIndicator(true);
     try {
-      // Get indicators
-      const resIndicators = await fetch("/api/indicators");
-      if (resIndicators.ok) {
-        const freshInd = await resIndicators.json();
-        setIndicators(freshInd);
-        localStorage.setItem("avdp_cached_indicators", JSON.stringify(freshInd));
-      }
+      const [freshInd, freshAlt, freshLogs] = await Promise.all([
+        db.getIndicators(),
+        db.getAlerts(),
+        db.getLogs().catch(() => [] as typeof logs), // logs need auth; ignore if anon
+      ]);
 
-      // Get warnings triggers
-      const resAlerts = await fetch("/api/alerts");
-      if (resAlerts.ok) {
-        const freshAlt = await resAlerts.json();
-        setAlerts(freshAlt);
-        localStorage.setItem("avdp_cached_alerts", JSON.stringify(freshAlt));
-      }
+      setIndicators(freshInd);
+      localStorage.setItem("avdp_cached_indicators", JSON.stringify(freshInd));
 
-      // Get audit log indexes
-      const resLogs = await fetch("/api/logs");
-      if (resLogs.ok) {
-        const freshLogs = await resLogs.json();
+      setAlerts(freshAlt);
+      localStorage.setItem("avdp_cached_alerts", JSON.stringify(freshAlt));
+
+      if (freshLogs.length > 0) {
         setLogs(freshLogs);
         localStorage.setItem("avdp_cached_logs", JSON.stringify(freshLogs));
       }
@@ -115,10 +188,10 @@ export default function App() {
       setSyncStatus({
         lastSyncTime: new Date().toLocaleTimeString(),
         isOnline: true,
-        pendingChangesCount: 0
+        pendingChangesCount: getQueue().length
       });
     } catch (err) {
-      console.warn("Express server unreachable. Proceeding with stored offline dataset.", err);
+      console.warn("Supabase unreachable. Proceeding with stored offline dataset.", err);
       setSyncStatus(prev => ({
         ...prev,
         isOnline: false
@@ -128,59 +201,24 @@ export default function App() {
     }
   };
 
-  // Modify individual indicator values (CRUD under RBAC guard)
+  // Modify individual indicator values (CRUD under RBAC guard, enforced by RLS)
   const handleUpdateIndicator = async (id: string, baseline: number, achieved: number) => {
     if (!currentUser) throw new Error("Authentication required.");
 
-    // Update locally immediately for lag-free visual updating (Offline First!)
-    const targetIdx = indicators.findIndex(i => i.IndicatorID === id);
-    if (targetIdx === -1) return;
+    // Offline-first: if there's no connectivity, apply locally and queue for replay.
+    if (!navigator.onLine) {
+      applyLocalIndicatorEdit(id, baseline, achieved);
+      enqueue({ id, baseline, achieved });
+      setSyncStatus(prev => ({ ...prev, isOnline: false, pendingChangesCount: getQueue().length }));
+      return;
+    }
 
-    const currentIndicators = [...indicators];
-    const targetItem = currentIndicators[targetIdx];
-    
-    const updatedProgress = baseline > 0 ? parseFloat(((achieved / baseline) * 100).toFixed(1)) : 100;
-    let status: "On Track" | "Need Attention" | "Critical" = "On Track";
-    if (updatedProgress < 100) status = "Critical";
-    else if (updatedProgress >= 100 && updatedProgress < 130) status = "Need Attention";
-
-    const updatedItem: Indicator = {
-      ...targetItem,
-      BaselineValue: baseline,
-      AchievedValue: achieved,
-      Progress: updatedProgress,
-      Status: status,
-      LastUpdated: new Date().toISOString()
-    };
-
-    currentIndicators[targetIdx] = updatedItem;
-    setIndicators(currentIndicators);
-    localStorage.setItem("avdp_cached_indicators", JSON.stringify(currentIndicators));
-
-    // Post to server synchronously
     try {
-      const res = await fetch(`/api/indicators/${id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          "X-User-Role": currentUser.role,
-          "X-User-Email": currentUser.email,
-          ...(currentUser.district ? { "X-User-District": currentUser.district } : {})
-        },
-        body: JSON.stringify({ BaselineValue: baseline, AchievedValue: achieved })
-      });
-
-      if (!res.ok) {
-        const errPayload = await res.json();
-        throw new Error(errPayload.error || "Server validation error.");
-      }
-
-      // Refresh log list following successful transactions write
-      syncWithServer();
+      await db.updateIndicator(id, baseline, achieved, currentUser);
+      await syncWithServer();
     } catch (err: any) {
-      // Revert if write fails and notify user
       console.error(err);
-      syncWithServer(); // Pull back server state
+      await syncWithServer(); // Pull back authoritative state
       throw new Error(err.message || "Failed to commit metrics parameters changes.");
     }
   };
@@ -190,23 +228,16 @@ export default function App() {
     if (!currentUser || currentUser.role !== UserRole.ADMIN) {
       throw new Error("Access Denied. Only administration accounts support CSV uploads.");
     }
-
     try {
-      const res = await fetch("/api/indicators/batch", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-User-Role": currentUser.role,
-          "X-User-Email": currentUser.email
-        },
-        body: JSON.stringify(data)
-      });
-
-      if (!res.ok) {
-        throw new Error("Batch import operation rejected by security manager.");
-      }
-
-      syncWithServer();
+      const rows = data
+        .filter(d => d.IndicatorID != null && d.BaselineValue != null && d.AchievedValue != null)
+        .map(d => ({
+          IndicatorID: d.IndicatorID as string,
+          BaselineValue: d.BaselineValue as number,
+          AchievedValue: d.AchievedValue as number,
+        }));
+      await db.batchImportIndicators(rows, currentUser);
+      await syncWithServer();
     } catch (err: any) {
       console.error(err);
       throw new Error(err.message || "Bulk CSV imports faced syncing obstacles.");
@@ -215,34 +246,48 @@ export default function App() {
 
   // Subscribe dynamic thresholds warning
   const handleCreateAlertRule = async (rule: Partial<ThresholdAlert>) => {
+    if (!currentUser) throw new Error("Sign in to manage alert rules.");
     try {
-      const res = await fetch("/api/alerts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(rule)
-      });
-
-      if (!res.ok) {
-        throw new Error("Alert registration rejected.");
-      }
-
-      syncWithServer();
-    } catch (err) {
+      await db.createAlert(
+        {
+          indicatorId: rule.indicatorId as string,
+          recipientEmail: rule.recipientEmail as string,
+          thresholdValue: rule.thresholdValue as number,
+          condition: (rule.condition as "below" | "above") || "below",
+        },
+        currentUser
+      );
+      await syncWithServer();
+    } catch (err: any) {
       console.error(err);
-      throw new Error("Failed to subscribe alert rule.");
+      throw new Error(err.message || "Failed to subscribe alert rule.");
     }
   };
 
   // Test send dispatch trigger alerts simulated email logs
   const handleTriggerAlertDispatch = async (id: string) => {
     try {
-      const res = await fetch(`/api/alerts/dispatch/${id}`, {
-        method: "POST"
-      });
-      if (!res.ok) {
-        throw new Error("Alert dispatch simulation failed.");
-      }
-      syncWithServer();
+      await db.dispatchAlert(id, currentUser);
+      await syncWithServer();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // Pause / resume / delete alert rules
+  const handleToggleAlert = async (id: string, enabled: boolean) => {
+    try {
+      await db.updateAlert(id, { enabled }, currentUser);
+      await syncWithServer();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteAlert = async (id: string) => {
+    try {
+      await db.deleteAlert(id, currentUser);
+      await syncWithServer();
     } catch (err) {
       console.error(err);
     }
@@ -276,6 +321,12 @@ export default function App() {
           {syncStatus.lastSyncTime && (
             <span className="text-slate-400 text-[11px] hidden sm:inline">
               Last Synced: {syncStatus.lastSyncTime}
+            </span>
+          )}
+          {syncStatus.pendingChangesCount > 0 && (
+            <span className="flex items-center gap-1 text-amber-400 text-[11px] bg-amber-950/30 border border-amber-500/25 px-2 py-0.5 rounded font-mono">
+              <HardDrive className="w-3 h-3" />
+              {syncStatus.pendingChangesCount} pending sync
             </span>
           )}
           <button 
@@ -329,10 +380,9 @@ export default function App() {
           </div>
 
           {/* Secure Admin Gate modal toggles */}
-          <AuthModal 
+          <AuthModal
             currentUser={currentUser}
-            onLogin={setCurrentUser}
-            onLogout={() => setCurrentUser(null)}
+            onLogout={async () => { await db.signOut(); setCurrentUser(null); }}
           />
         </div>
       </header>
@@ -394,8 +444,15 @@ export default function App() {
               </div>
             )}
 
+            {/* Auto-derived "what to watch" insight cards */}
+            <ProactiveInsights
+              indicators={indicators}
+              onSelectDistrict={setSelectedDistrict}
+              isLowBandwidth={isLowBandwidth}
+            />
+
             {/* McKinsey-style Strategic Informatics & Charts Board */}
-            <ExecutiveAnalytics 
+            <ExecutiveAnalytics
               indicators={indicators}
               selectedDistrict={selectedDistrict}
               onSelectDistrict={setSelectedDistrict}
@@ -445,7 +502,7 @@ export default function App() {
             </div>
 
             {/* AVDP Surveys & Field Evaluations Registry Hub */}
-            <SurveyRegistry 
+            <SurveyRegistry
               currentUser={currentUser}
               indicators={indicators}
               selectedDistrict={selectedDistrict}
@@ -453,14 +510,23 @@ export default function App() {
               onRefreshLogs={syncWithServer}
             />
 
+            {/* Gender & youth inclusion analytics (survey disaggregation) */}
+            <GenderAnalytics selectedDistrict={selectedDistrict} isLowBandwidth={isLowBandwidth} />
+
+            {/* Scheduled national M&E digest reports */}
+            <ReportsPanel currentUser={currentUser} />
+
             {/* Subscription threshold rules + Automated email notifications mock simulator */}
             <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
               <div className="xl:col-span-7">
-                <AlertManager 
+                <AlertManager
                   alerts={alerts}
                   indicators={indicators}
+                  currentUser={currentUser}
                   onCreateAlertRule={handleCreateAlertRule}
                   onTriggerAlertDispatch={handleTriggerAlertDispatch}
+                  onToggleAlert={handleToggleAlert}
+                  onDeleteAlert={handleDeleteAlert}
                   isLowBandwidth={isLowBandwidth}
                 />
               </div>

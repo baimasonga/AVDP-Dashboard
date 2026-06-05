@@ -143,10 +143,21 @@ export const getEnrichedIndicators = (): Indicator[] => {
       ? regionComms[index % regionComms.length]
       : "General";
 
+    // Inject a few realistic under-performing indicators for the demo by adjusting the
+    // achieved value, so Status stays consistent with Progress (and survives edits).
+    let achieved = item.achieved;
+    if (index % 17 === 0) {
+      // Genuinely sub-baseline → Critical
+      achieved = Math.round(item.baseline * 0.85);
+    } else if (index % 12 === 0) {
+      // Just over baseline (100%-130%) → Need Attention
+      achieved = Math.round(item.baseline * 1.15);
+    }
+
     // Re-evaluate accurate status based on target progress (e.g. baseline and achieved)
     let status: "On Track" | "Need Attention" | "Critical" = "On Track";
-    const computedProgress = item.baseline > 0 ? (item.achieved / item.baseline) * 100 : 100;
-    
+    const computedProgress = item.baseline > 0 ? (achieved / item.baseline) * 100 : 100;
+
     if (computedProgress < 100) {
       status = "Critical"; // Below target/baseline parameters
     } else if (computedProgress >= 100 && computedProgress < 130) {
@@ -155,16 +166,11 @@ export const getEnrichedIndicators = (): Indicator[] => {
       status = "On Track"; // Exceptionally good progress matching the provided 'On Track' labels in prompt
     }
 
-    // Since prompt specifies "On Track" for all, let's inject a few realistic alerts/critical states for testing.
-    // E.g., if progress is close to 100 or baseline is high. We can make a few indicators critical.
-    if (index % 17 === 0) status = "Critical";
-    if (index % 12 === 0) status = "Need Attention";
-
     return {
       IndicatorID: item.id,
       IndicatorName: item.name,
       BaselineValue: item.baseline,
-      AchievedValue: item.achieved,
+      AchievedValue: achieved,
       Progress: parseFloat(computedProgress.toFixed(1)),
       Status: status,
       District: districtName,

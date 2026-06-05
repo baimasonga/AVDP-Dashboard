@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { askAdvisor } from "../lib/db";
 import { MessageSquare, Calendar, Sparkles, Send, Bot, AlertTriangle, ShieldCheck, User } from "lucide-react";
 
 interface Message {
@@ -70,28 +71,16 @@ Select one of the query prompt ideas below, or formulate a customized question. 
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/gemini/advisor", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          question: queryText,
-          currentDistrict: currentDistrict || undefined,
-          activeCommodity: activeCommodity !== "All" ? activeCommodity : undefined
-        })
+      const text = await askAdvisor({
+        question: queryText,
+        currentDistrict: currentDistrict || undefined,
+        activeCommodity: activeCommodity !== "All" ? activeCommodity : undefined,
       });
-
-      if (!response.ok) {
-        throw new Error("Adviser API failed to respond. Check API Server.");
-      }
-
-      const data = await response.json();
 
       const botMsg: Message = {
         id: `msg-bot-${Date.now()}`,
         sender: "bot",
-        text: data.text || "I was unable to assess strategy indices at this moment. Please try again.",
+        text: text || "I was unable to assess strategy indices at this moment. Please try again.",
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
 

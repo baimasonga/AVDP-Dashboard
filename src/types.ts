@@ -27,11 +27,21 @@ export interface Indicator {
   IndicatorName: IndicatorCategory;
   BaselineValue: number;
   AchievedValue: number;
+  Target?: number; // logframe end-of-project target
   Progress: number; // percentage (Achieved / Baseline * 100)
   Status: "On Track" | "Need Attention" | "Critical";
   District: string;
   Commodity: "Rice" | "Cocoa" | "Coffee" | "Oil Palm" | "General";
   LastUpdated: string; // ISO String
+}
+
+export interface IndicatorHistoryPoint {
+  baseline: number;
+  achieved: number;
+  progress: number;
+  status: string;
+  changedBy: string;
+  recordedAt: string; // ISO String
 }
 
 export interface DistrictMetricSummary {
@@ -63,6 +73,7 @@ export interface ThresholdAlert {
   triggeredAt: string;
   recipientEmail: string;
   status: "Sent" | "Pending" | "Failed";
+  enabled: boolean;
 }
 
 export interface SyncStatus {
@@ -94,6 +105,9 @@ export interface SurveyRecord {
   keyFindings?: string;
 }
 
+export type Gender = "Female" | "Male" | "Other";
+export type AgeGroup = "Youth (18-35)" | "Adult (36-59)" | "Senior (60+)";
+
 export interface SurveyResponse {
   id: string;
   surveyId: string;
@@ -101,6 +115,8 @@ export interface SurveyResponse {
   respondentType: "Smallholder Farmer" | "Youth Co-op Member" | "Transport Operator" | "Local Offtaker" | "Swamp Cultivator";
   district: string;
   commodity: "Rice" | "Cocoa" | "Coffee" | "Oil Palm" | "General";
+  gender?: Gender;
+  ageGroup?: AgeGroup;
   answers: {
     question: string;
     answer: string | number;
