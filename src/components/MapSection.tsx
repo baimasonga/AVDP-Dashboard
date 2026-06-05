@@ -140,7 +140,7 @@ export default function MapSection({
     const x = cx + rLabel * Math.cos(angle);
     const y = cy + rLabel * Math.sin(angle);
     
-    let anchor = "middle";
+    let anchor: "start" | "middle" | "end" = "middle";
     if (x > cx + 8) anchor = "start";
     else if (x < cx - 8) anchor = "end";
     
