@@ -5,7 +5,7 @@ import { supabase } from "./lib/supabase";
 import * as db from "./lib/db";
 import { getQueue, enqueue, removeFromQueue } from "./lib/offlineQueue";
 import AuthModal from "./components/AuthModal";
-import MapSection from "./components/MapSection";
+import ValueChainLocator from "./components/ValueChainLocator";
 import IndicatorTable from "./components/IndicatorTable";
 import AlertManager from "./components/AlertManager";
 import AdviserChat from "./components/AdviserChat";
@@ -411,9 +411,9 @@ export default function App() {
                 : "border-transparent text-slate-400 hover:text-slate-200"
             }`}
           >
-            🧭 GIS Informatics
+            🔎 Value Chain Locator
             <span className="text-[9px] bg-emerald-950 border border-emerald-500/25 text-emerald-400 px-1.5 py-0.5 rounded uppercase font-bold tracking-normal leading-none">
-              Map
+              Find
             </span>
           </button>
 
@@ -540,7 +540,7 @@ export default function App() {
         )}
 
         {activeTab === "gis" && (
-          <MapSection
+          <ValueChainLocator
             indicators={indicators}
             selectedDistrict={selectedDistrict}
             onSelectDistrict={setSelectedDistrict}
