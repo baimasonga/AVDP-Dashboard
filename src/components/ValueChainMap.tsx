@@ -254,6 +254,23 @@ export default function ValueChainMap({ selectedDistrict, onSelectDistrict, isLo
                     onMouseEnter={() => setHovered(name)} onMouseLeave={() => setHovered(null)} />
                 );
               })}
+              {/* District name labels at polygon centroids */}
+              {GEO.features.map((f) => {
+                const name = f.properties.shapeName;
+                const [cxL, cyL] = geoPathGen.centroid(f as any);
+                if (!Number.isFinite(cxL) || !Number.isFinite(cyL)) return null;
+                const isSel = selectedDistrict === name;
+                const isHover = hovered === name;
+                return (
+                  <text key={`lbl-${name}`} x={cxL} y={cyL}
+                    textAnchor="middle" dominantBaseline="middle"
+                    className="pointer-events-none font-mono font-semibold select-none"
+                    style={{ fontSize: 8.5, paintOrder: "stroke", stroke: "#020617", strokeWidth: 2.4, strokeLinejoin: "round" }}
+                    fill={isSel ? "#5eead4" : isHover ? "#a7f3d0" : "#cbd5e1"}>
+                    {name}
+                  </text>
+                );
+              })}
               {matches.map((s) => {
                 const p = project(s); if (!p) return null;
                 const active = selected?.id === s.id;
