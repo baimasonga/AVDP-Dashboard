@@ -41,8 +41,9 @@ Migrations live in `supabase/migrations/`.
 4. Run:
    ```
    npm run dev      # dev server on http://localhost:3000
-   npm run build    # production build (vite + esbuild server bundle)
-   npm run start    # run the production build
+   npm run build    # production static build for Cloudflare Pages
+   npm run build:server # optional self-hosted build (Vite + Express bundle)
+   npm run start    # run the optional self-hosted production build
    npm run lint     # typecheck (tsc --noEmit)
    ```
 
@@ -55,7 +56,7 @@ long-running server to operate.
 **Frontend → Cloudflare (Connect to Git)**
 1. Cloudflare dashboard → **Workers & Pages → Create → Connect to Git** →
    select `baimasonga/AVDP-Dashboard`, branch `main`.
-2. Build command: `npm run build:web` · Output directory: `dist`.
+2. Build command: `npm run build` (or `npm run build:web`) · Output directory: `dist`.
 3. Add environment variables: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`.
 4. Cloudflare rebuilds and deploys automatically on every push to `main`.
 
@@ -76,7 +77,10 @@ long-running server to operate.
 - The daily report `pg_cron` job already runs on Supabase — nothing to host.
 
 > `server.ts` is only used for local dev (and optional self-hosting via
-> `npm run build` + `npm run start`); it is not part of the Cloudflare deployment.
+> `npm run build:server` + `npm run start`); it is not part of the Cloudflare deployment.
+
+The repo includes `.node-version` so Cloudflare Pages and other Node-aware hosts
+use a Node runtime compatible with the current Vite React plugin during rebuilds.
 
 ## Roles (RBAC)
 
