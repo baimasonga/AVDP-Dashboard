@@ -16,7 +16,7 @@ import CropCalendar from "./components/CropCalendar";
 import ProactiveInsights from "./components/ProactiveInsights";
 import GenderAnalytics from "./components/GenderAnalytics";
 import ReportsPanel from "./components/ReportsPanel";
-import MapSection from "./components/MapSection";
+import GisWorkspace from "./components/GisWorkspace";
 import {
   Building2, Globe, Shield, RefreshCw, Radio, HardDrive,
   Wifi, WifiOff, FileSpreadsheet, Layers, Bell, Bot, History,
@@ -544,7 +544,7 @@ export default function App() {
         )}
 
         {activeTab === "gis" && (
-          <MapSection
+          <GisWorkspace
             indicators={indicators}
             selectedDistrict={selectedDistrict}
             onSelectDistrict={setSelectedDistrict}
