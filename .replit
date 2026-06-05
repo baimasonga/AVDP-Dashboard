@@ -50,3 +50,9 @@ publicDir = "dist"
 [postMerge]
 path = "scripts/post-merge.sh"
 timeoutMs = 30000
+
+[userenv]
+
+[userenv.shared]
+VITE_SUPABASE_URL = "https://vwpibqvwzvqccoqceumv.supabase.co"
+VITE_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3cGlicXZ3enZxY2NvcWNldW12Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5MDUyNjAsImV4cCI6MjA5MDQ4MTI2MH0.7swsctDVplXMeFAlx5PDoJFeWiz2HkWjD34c5fmYQR8"
