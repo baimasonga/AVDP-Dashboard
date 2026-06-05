@@ -5,7 +5,7 @@ import { supabase } from "./lib/supabase";
 import * as db from "./lib/db";
 import { getQueue, enqueue, removeFromQueue } from "./lib/offlineQueue";
 import AuthModal from "./components/AuthModal";
-import MapSection from "./components/MapSection";
+import ValueChainLocator from "./components/ValueChainLocator";
 import IndicatorTable from "./components/IndicatorTable";
 import AlertManager from "./components/AlertManager";
 import AdviserChat from "./components/AdviserChat";
@@ -441,6 +441,17 @@ export default function App() {
           >
             📅 Seasonal Crop Calendar
           </button>
+
+          <button
+            onClick={() => setActiveTab("settings")}
+            className={`text-xs uppercase font-mono tracking-wider font-bold pb-3 px-4 border-b-2 transition-all cursor-pointer flex items-center gap-2 ${
+              activeTab === "settings"
+                ? "border-emerald-500 text-emerald-400 font-semibold"
+                : "border-transparent text-slate-400 hover:text-slate-200"
+            }`}
+          >
+            ⚙️ Settings
+          </button>
         </div>
 
         {activeTab === "analytics" && (
@@ -519,42 +530,14 @@ export default function App() {
             {/* Scheduled national M&E digest reports */}
             <ReportsPanel currentUser={currentUser} />
 
-            {/* Subscription threshold rules + Automated email notifications mock simulator */}
-            <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
-              <div className="xl:col-span-7">
-                <AlertManager
-                  alerts={alerts}
-                  indicators={indicators}
-                  currentUser={currentUser}
-                  onCreateAlertRule={handleCreateAlertRule}
-                  onTriggerAlertDispatch={handleTriggerAlertDispatch}
-                  onToggleAlert={handleToggleAlert}
-                  onDeleteAlert={handleDeleteAlert}
+            {/* Decision-support AI adviser — anchored at the bottom of the workspace */}
+            <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 relative overflow-visible">
+              <div className="xl:col-span-12 h-full flex flex-col justify-between">
+                <AdviserChat
+                  currentDistrict={selectedDistrict}
+                  activeCommodity="Rice"
                   isLowBandwidth={isLowBandwidth}
                 />
-              </div>
-
-              {/* Audit Logs Trail Tracker feed card */}
-              <div className="xl:col-span-5 bg-[#0f172a] border border-slate-800 rounded-xl p-5 shadow-sm">
-                <div className="text-xs font-mono font-bold tracking-wider text-emerald-400 uppercase border-b border-slate-800 pb-2.5 mb-4 flex items-center justify-between">
-                  <span className="flex items-center gap-1.5">
-                    <History className="w-4 h-4 text-emerald-400" />
-                    Security Audit Log trail ({logs.length} transactions)
-                  </span>
-                  <span className="text-[10px] text-slate-500 font-mono">RBAC compliant</span>
-                </div>
-
-                <div className="space-y-3.5 max-h-[295px] overflow-y-auto pr-1">
-                  {logs.map((log, idx) => (
-                    <div key={idx} className="text-[11px] leading-relaxed border-b border-slate-900 pb-2.5 last:border-b-0">
-                      <div className="flex justify-between font-mono text-[10px] text-slate-500 font-semibold">
-                        <span>{log.user} ({log.role})</span>
-                        <span>{new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                      </div>
-                      <p className="text-slate-300 mt-1 font-mono">{log.action}</p>
-                    </div>
-                  ))}
-                </div>
               </div>
             </div>
           </>
@@ -650,6 +633,105 @@ export default function App() {
             selectedDistrict={selectedDistrict}
             isLowBandwidth={isLowBandwidth}
           />
+        )}
+
+        {activeTab === "settings" && (
+          <>
+            {/* Settings header */}
+            <div className="flex items-center gap-2.5 border-b border-slate-800 pb-4">
+              <Sliders className="w-5 h-5 text-emerald-400" />
+              <div>
+                <h3 className="text-sm font-bold text-slate-100 tracking-tight">Settings & Administration</h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Configure threshold alerts &amp; notifications, display preferences, and review the security audit trail.
+                </p>
+              </div>
+            </div>
+
+            {/* Display & bandwidth preferences */}
+            <div className="bg-[#0f172a] border border-slate-800 rounded-xl p-5 shadow-sm">
+              <div className="text-xs font-mono font-bold tracking-wider text-emerald-400 uppercase border-b border-slate-800 pb-2.5 mb-4 flex items-center gap-1.5">
+                <Radio className="w-4 h-4" /> Display &amp; Bandwidth Preferences
+              </div>
+
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <div className="text-sm text-slate-200 font-semibold">Low Bandwidth Mode</div>
+                  <p className="text-xs text-slate-400 mt-0.5 max-w-md">
+                    Reduces graphics, animations and map effects for 2G / low-power field connections.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setIsLowBandwidth(!isLowBandwidth)}
+                  className={`shrink-0 px-3.5 py-2 rounded-lg text-xs font-bold border transition-all cursor-pointer flex items-center gap-2 ${
+                    isLowBandwidth
+                      ? "bg-emerald-950/40 border-emerald-500/30 text-emerald-400"
+                      : "bg-slate-900 border-slate-700 text-slate-300 hover:border-slate-600"
+                  }`}
+                >
+                  <Radio className="w-3.5 h-3.5" />
+                  {isLowBandwidth ? "Low Bandwidth: ON" : "Full Graphics (3G/4G)"}
+                </button>
+              </div>
+
+              {/* Session / access status */}
+              <div className="mt-4 pt-4 border-t border-slate-900 text-[11px] font-mono flex items-center justify-between">
+                <span className="text-slate-500">Signed-in identity</span>
+                {currentUser ? (
+                  <span className="text-emerald-400 font-bold flex items-center gap-1.5">
+                    <Shield className="w-3.5 h-3.5" />
+                    {currentUser.name} · {currentUser.role}{currentUser.district ? ` (${currentUser.district})` : ""}
+                  </span>
+                ) : (
+                  <span className="text-amber-400">Not signed in — sign in (top-right) to manage alert rules.</span>
+                )}
+              </div>
+            </div>
+
+            {/* Threshold alerts & mail gateway + audit log */}
+            <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+              <div className="xl:col-span-7">
+                <AlertManager
+                  alerts={alerts}
+                  indicators={indicators}
+                  currentUser={currentUser}
+                  onCreateAlertRule={handleCreateAlertRule}
+                  onTriggerAlertDispatch={handleTriggerAlertDispatch}
+                  onToggleAlert={handleToggleAlert}
+                  onDeleteAlert={handleDeleteAlert}
+                  isLowBandwidth={isLowBandwidth}
+                />
+              </div>
+
+              {/* Audit Logs Trail Tracker feed card */}
+              <div className="xl:col-span-5 bg-[#0f172a] border border-slate-800 rounded-xl p-5 shadow-sm">
+                <div className="text-xs font-mono font-bold tracking-wider text-emerald-400 uppercase border-b border-slate-800 pb-2.5 mb-4 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <History className="w-4 h-4 text-emerald-400" />
+                    Security Audit Log trail ({logs.length} transactions)
+                  </span>
+                  <span className="text-[10px] text-slate-500 font-mono">RBAC compliant</span>
+                </div>
+
+                <div className="space-y-3.5 max-h-[420px] overflow-y-auto pr-1">
+                  {logs.length === 0 && (
+                    <div className="text-center py-10 text-slate-500 text-xs font-mono">
+                      No audit entries yet. Sign in to view the activity trail.
+                    </div>
+                  )}
+                  {logs.map((log, idx) => (
+                    <div key={idx} className="text-[11px] leading-relaxed border-b border-slate-900 pb-2.5 last:border-b-0">
+                      <div className="flex justify-between font-mono text-[10px] text-slate-500 font-semibold">
+                        <span>{log.user} ({log.role})</span>
+                        <span>{new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                      </div>
+                      <p className="text-slate-300 mt-1 font-mono">{log.action}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </>
         )}
 
       </main>
