@@ -17,6 +17,7 @@ import CropCalendar from "./components/CropCalendar";
 import ProactiveInsights from "./components/ProactiveInsights";
 import GenderAnalytics from "./components/GenderAnalytics";
 import ReportsPanel from "./components/ReportsPanel";
+import MapSection from "./components/MapSection";
 import {
   Building2, Globe, Shield, RefreshCw, Radio, HardDrive,
   Wifi, WifiOff, FileSpreadsheet, Layers, Bell, Bot, History,
