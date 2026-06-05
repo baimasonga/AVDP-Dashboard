@@ -357,10 +357,10 @@ export default function MapSection({
       <div className="flex h-full">
 
         {/* MAP */}
-        <div className="flex-1 relative">
+        <div className="flex-1 relative flex justify-center">
           <svg
             viewBox={`0 0 ${MAP_W} ${MAP_H}`}
-            style={{ display: "block", width: "100%", height: "auto" }}
+            style={{ display: "block", width: "100%", maxWidth: "820px", height: "auto", margin: "0 auto" }}
             preserveAspectRatio="xMidYMid meet"
           >
             <defs>
