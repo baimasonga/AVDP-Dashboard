@@ -2,7 +2,7 @@ import React, { useMemo, useState } from "react";
 import * as d3 from "d3";
 import sleGeoRaw from "../data/sleDistricts.geo.json";
 import { AVDP_SITES, AVDPSite, ValueChain } from "../data/avdpSites";
-import { AVDP_PROJECT } from "../data/avdpProject";
+import { AVDP_REPORT } from "../data/avdpReport";
 import {
   Search, MapPin, X, Navigation, Locate, Calendar, Users, Banknote,
   Sprout, Route, Building2, Coins, Wheat, Layers, TrendingUp
@@ -65,23 +65,22 @@ export default function ValueChainMap({ selectedDistrict, onSelectDistrict, isLo
     });
   }, [query, vcFilter, actFilter, selectedDistrict]);
 
-  // KPIs (sample sites vs real AVDP targets)
-  const kpis = useMemo(() => {
-    const sum = (f: (s: AVDPSite) => boolean) => AVDP_SITES.filter(f).reduce((a, s) => a + s.metricValue, 0);
-    return {
-      ivsHa: Math.round(sum((s) => s.activityType.includes("Inland Valley Swamp"))),
-      roadsKm: Math.round(sum((s) => s.metric === "km")),
-      cocoaHa: Math.round(sum((s) => s.valueChain === "Cocoa" && s.metric === "ha")),
-      palmHa: Math.round(sum((s) => s.valueChain === "Oil Palm" && s.metric === "ha")),
-      beneficiaries: AVDP_SITES.reduce((a, s) => a + s.beneficiaries, 0),
-    };
-  }, []);
-  const T = AVDP_PROJECT.targets;
+  // Real AVDP programme figures (IFAD Supervision Mission, Jun 2026) — so the
+  // map KPIs match the Implementation tab exactly.
+  const findRow = (gid: string, sub: string) => {
+    const g = AVDP_REPORT.progress.find((x) => x.id === gid);
+    return g?.rows.find((r) => r.label.includes(sub));
+  };
+  const ivs = findRow("infra", "IVS");
+  const roads = findRow("climateinfra", "Feeder Road");
+  const cocoa = findRow("treecrops", "New Cocoa");
+  const palm = findRow("treecrops", "New Oil Palm");
+  const genderReached = (AVDP_REPORT.progress.find((g) => g.id === "gender")?.rows || []).reduce((a, r) => a + r.achieved, 0);
   const kpiCards = [
-    { label: "Inland Valley Swamp", value: `${kpis.ivsHa} ha`, target: T.inlandValleySwampHa, cur: kpis.ivsHa, unit: "ha" },
-    { label: "Feeder Roads", value: `${kpis.roadsKm} km`, target: T.feederRoadsKm, cur: kpis.roadsKm, unit: "km" },
-    { label: "Cocoa Established", value: `${kpis.cocoaHa} ha`, target: T.cocoaHa, cur: kpis.cocoaHa, unit: "ha" },
-    { label: "Oil Palm Established", value: `${kpis.palmHa} ha`, target: T.oilPalmHa, cur: kpis.palmHa, unit: "ha" },
+    { label: "Inland Valley Swamp", cur: ivs?.achieved || 0, target: ivs?.totalTarget || 1, unit: "ha" },
+    { label: "Feeder Roads", cur: roads?.achieved || 0, target: roads?.totalTarget || 1, unit: "km" },
+    { label: "Cocoa Farms", cur: cocoa?.achieved || 0, target: cocoa?.totalTarget || 1, unit: "ha" },
+    { label: "Oil Palm Farms", cur: palm?.achieved || 0, target: palm?.totalTarget || 1, unit: "ha" },
   ];
 
   // Breakdown of the current selection (for the default summary panel)
@@ -130,16 +129,16 @@ export default function ValueChainMap({ selectedDistrict, onSelectDistrict, isLo
           return (
             <div key={k.label} className="bg-slate-950/40 border border-slate-900 rounded-xl p-3">
               <div className="text-[9px] font-mono uppercase text-slate-500 tracking-wider">{k.label}</div>
-              <div className="text-base font-bold font-mono text-slate-100 mt-0.5">{k.value}</div>
+              <div className="text-base font-bold font-mono text-slate-100 mt-0.5">{k.cur.toLocaleString()} {k.unit}</div>
               <div className="w-full bg-slate-900 h-1.5 rounded-full overflow-hidden mt-1.5"><div className="h-full bg-emerald-500" style={{ width: `${pct}%` }} /></div>
               <div className="text-[8px] font-mono text-slate-500 mt-1">{pct}% of {k.target.toLocaleString()} {k.unit} target</div>
             </div>
           );
         })}
         <div className="bg-emerald-950/20 border border-emerald-500/20 rounded-xl p-3">
-          <div className="text-[9px] font-mono uppercase text-emerald-400 tracking-wider">Beneficiaries (sample)</div>
-          <div className="text-base font-bold font-mono text-emerald-300 mt-0.5">{kpis.beneficiaries.toLocaleString()}</div>
-          <div className="text-[8px] font-mono text-slate-500 mt-1.5">of {T.people.toLocaleString()} people target</div>
+          <div className="text-[9px] font-mono uppercase text-emerald-400 tracking-wider">Households reached (GALS)</div>
+          <div className="text-base font-bold font-mono text-emerald-300 mt-0.5">{genderReached.toLocaleString()}</div>
+          <div className="text-[8px] font-mono text-slate-500 mt-1.5">of {AVDP_REPORT.summary.households.toLocaleString()} HH target</div>
         </div>
       </div>
 
