@@ -202,6 +202,35 @@ export const AVDP_REPORT = {
     "Q4 2025 IFRs submitted on time (Feb 2026); Q1 2026 IFRs submitted 13 May 2026 (before deadline).",
   ],
 
+  // Procurement Plan implementation by stage (Jan–May 2026)
+  procurementPipeline: {
+    stages: [
+      { stage: "Planning", count: 3, value: 176970.0 },
+      { stage: "Bidding", count: 5, value: 1636622.27 },
+      { stage: "Contracting", count: 2, value: 510634.0 },
+      { stage: "Contract Management", count: 13, value: 2816753.73 },
+    ],
+    total: { count: 23, value: 5140980.0 },
+  },
+
+  // Targets the PMU has flagged as unrealistic and requested be reviewed/reduced
+  targetsUnderReview: [
+    {
+      target: "Employment Creation",
+      planned: 7360,
+      achieved: 846,
+      unit: "HHs",
+      note: "846 jobs created (11.5%). Road-job beneficiaries show little interest; contractors use fixed external teams and machines, employing few community members.",
+    },
+    {
+      target: "Potable Water & Sanitation",
+      planned: 9000,
+      achieved: null,
+      unit: "HHs",
+      note: "Services were complementary to existing beneficiaries; avoiding duplication means actual new beneficiaries are far fewer than the 9,000 HH target.",
+    },
+  ] as { target: string; planned: number; achieved: number | null; unit: string; note: string }[],
+
   challenges: [
     { category: "Logistics & Infrastructure", challenges: ["Poor rural roads limit site access", "High transport costs", "Inadequate storage & cold chain"], recommendations: ["Invest in feeder roads & aggregation centres", "Establish cold chains for perishables", "Strengthen post-harvest systems"] },
     { category: "Climate & Environment", challenges: ["Erratic rainfall & IVS flooding", "Soil degradation & erosion", "Rising pest/disease pressure"], recommendations: ["Scale solar & drip irrigation", "Promote composting & soil fertility", "Encourage agroforestry & crop rotation"] },

@@ -20,6 +20,7 @@ import GisWorkspace from "./components/GisWorkspace";
 import ImplementationTab from "./components/ImplementationTab";
 import ProductionTab from "./components/ProductionTab";
 import OutcomesTab from "./components/OutcomesTab";
+import LogframeStrip from "./components/LogframeStrip";
 import {
   Building2, Globe, Shield, RefreshCw, Radio, HardDrive,
   Wifi, WifiOff, FileSpreadsheet, Layers, Bell, Bot, History,
@@ -492,6 +493,9 @@ export default function App() {
 
         {activeTab === "analytics" && (
           <>
+            {/* Real AVDP logframe outputs vs target (IFAD supervision deck) */}
+            <LogframeStrip onOpenImplementation={() => setActiveTab("implementation")} />
+
             {/* Dynamic Warning Alert Banner if any Critical warning exists */}
             {indicators.filter(i => i.Status === "Critical").length > 0 && !isLowBandwidth && (
               <div className="bg-red-950/30 border border-red-500/35 p-4 rounded-xl flex items-start gap-3.5 animate-pulse text-xs leading-normal text-red-300">

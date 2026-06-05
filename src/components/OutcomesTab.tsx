@@ -1,6 +1,6 @@
 import React from "react";
 import { AVDP_REPORT } from "../data/avdpReport";
-import { Users, Accessibility, Briefcase, ShoppingCart, Banknote, AlertTriangle, CheckCircle2, Lightbulb } from "lucide-react";
+import { Users, Accessibility, Briefcase, ShoppingCart, Banknote, AlertTriangle, CheckCircle2, Lightbulb, Flag, GitBranch } from "lucide-react";
 
 const usd = (n: number) => "$" + n.toLocaleString(undefined, { maximumFractionDigits: 0 });
 
@@ -56,6 +56,51 @@ export default function OutcomesTab() {
             <span className="text-sky-400 font-mono">{R.pwdaTotal} total</span>
           </h4>
           <DistrictBars data={pwda} max={Math.max(...pwda.map((p) => p.v))} color="bg-sky-500" unit="beneficiaries profiled across 15 districts" />
+        </div>
+      </div>
+
+      {/* Targets under review */}
+      <div className="bg-amber-950/15 border border-amber-500/25 rounded-2xl p-5 sm:p-6">
+        <div className="flex items-center gap-2 border-b border-amber-500/20 pb-3 mb-4">
+          <Flag className="w-5 h-5 text-amber-400" />
+          <h3 className="text-sm font-bold text-slate-100">Targets Under Review</h3>
+          <span className="text-[9px] bg-amber-950/40 border border-amber-500/25 text-amber-400 px-2 py-0.5 rounded font-mono font-bold uppercase tracking-wider">PMU requesting reduction</span>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {R.targetsUnderReview.map((t) => {
+            const pct = t.achieved != null ? Math.round((t.achieved / t.planned) * 100) : null;
+            return (
+              <div key={t.target} className="bg-slate-950/40 border border-slate-900 rounded-xl p-4">
+                <div className="flex justify-between items-baseline gap-2">
+                  <span className="text-sm font-bold text-slate-100">{t.target}</span>
+                  <span className="text-[11px] font-mono text-amber-300 shrink-0">{t.achieved != null ? t.achieved.toLocaleString() : "—"} / {t.planned.toLocaleString()} {t.unit}{pct != null ? ` · ${pct}%` : ""}</span>
+                </div>
+                {pct != null && <div className="w-full bg-slate-900 h-2 rounded-full overflow-hidden mt-2"><div className="h-full bg-amber-500" style={{ width: `${Math.min(100, pct)}%` }} /></div>}
+                <p className="text-[11px] text-slate-400 font-mono mt-2 leading-relaxed">{t.note}</p>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Financial execution pipeline */}
+      <div className="bg-[#0f172a] border border-slate-800 rounded-xl p-5 shadow-sm">
+        <h4 className="text-sm font-bold text-slate-100 flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
+          <span className="flex items-center gap-2"><GitBranch className="w-4 h-4 text-emerald-400" /> 2026 Financial Execution Pipeline</span>
+          <span className="text-emerald-400 font-mono text-xs">{R.procurementPipeline.total.count} activities · {usd(R.procurementPipeline.total.value)}</span>
+        </h4>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {R.procurementPipeline.stages.map((s) => {
+            const pct = Math.round((s.value / R.procurementPipeline.total.value) * 100);
+            return (
+              <div key={s.stage} className="bg-slate-950/40 border border-slate-900 rounded-lg p-3">
+                <div className="text-[9px] font-mono uppercase text-slate-500">{s.stage}</div>
+                <div className="text-sm font-bold font-mono text-slate-100 mt-0.5">{usd(s.value)}</div>
+                <div className="w-full bg-slate-900 h-1.5 rounded-full overflow-hidden mt-1.5"><div className="h-full bg-emerald-500" style={{ width: `${pct}%` }} /></div>
+                <div className="text-[9px] font-mono text-slate-500 mt-1">{s.count} activities · {pct}%</div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
