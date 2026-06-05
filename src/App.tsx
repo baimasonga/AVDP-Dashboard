@@ -5,7 +5,7 @@ import { supabase } from "./lib/supabase";
 import * as db from "./lib/db";
 import { getQueue, enqueue, removeFromQueue } from "./lib/offlineQueue";
 import AuthModal from "./components/AuthModal";
-import GISMapSection from "./components/MapSection";
+import MapSection from "./components/MapSection";
 import IndicatorTable from "./components/IndicatorTable";
 import AlertManager from "./components/AlertManager";
 import AdviserChat from "./components/AdviserChat";
@@ -22,6 +22,11 @@ import {
   Wifi, WifiOff, FileSpreadsheet, Layers, Bell, Bot, History,
   Info, TrendingUp, Sparkles, Sliders, LogIn, ChevronRight, AlertTriangle
 } from "lucide-react";
+
+// Keep both identifiers available during PR synchronization so GitHub builds do
+// not fail if either the new GIS alias or the legacy MapSection JSX name is
+// present after merging main-branch UI changes.
+const GISMapSection = MapSection;
 
 export default function App() {
   // Session Access Rules
@@ -83,8 +88,8 @@ export default function App() {
   // Initialize tab + district from the URL so views are shareable/deep-linkable
   const initialParams = new URLSearchParams(window.location.search);
   const initialTab = initialParams.get("tab");
-  const [activeTab, setActiveTab] = useState<"analytics" | "gis" | "markets" | "calendar">(
-    initialTab === "gis" || initialTab === "markets" || initialTab === "calendar" ? initialTab : "analytics"
+  const [activeTab, setActiveTab] = useState<"analytics" | "gis" | "markets" | "calendar" | "settings">(
+    initialTab === "gis" || initialTab === "markets" || initialTab === "calendar" || initialTab === "settings" ? initialTab : "analytics"
   );
 
   // --- COMPREHENSIVE DATA SYNCHRONIZATION INTERFACE ---
@@ -650,6 +655,15 @@ export default function App() {
             selectedDistrict={selectedDistrict}
             isLowBandwidth={isLowBandwidth}
           />
+        )}
+
+        {activeTab === "settings" && (
+          <div className="bg-[#0b1329] border border-slate-800 rounded-2xl p-6 text-sm text-slate-300">
+            <h2 className="text-base font-bold text-slate-100 mb-2">Dashboard Settings</h2>
+            <p className="text-xs text-slate-400">
+              Use the header controls for bandwidth mode, sync status, and secure authentication.
+            </p>
+          </div>
         )}
 
       </main>
