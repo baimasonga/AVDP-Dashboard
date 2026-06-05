@@ -7,6 +7,7 @@ import {
   Activity, GitCompare, Search, Server,
   LocateFixed, X
 } from "lucide-react";
+import sleGeoJson from "../data/sleDistricts.geo.json";
 
 interface MapSectionProps {
   indicators: Indicator[];
@@ -24,24 +25,106 @@ type DistrictMapShape = {
   label: { x: number; y: number; size?: number; lines?: string[] };
 };
 
-const DISTRICT_MAP_SHAPES: DistrictMapShape[] = [
-  { name: "Kambia",             points: "20,205 52,170 112,178 154,132 215,142 224,205 182,238 105,242 62,272 18,250",       label: { x: 106, y: 213, size: 22 } },
-  { name: "Karene",             points: "180,44 300,26 333,58 414,36 414,135 350,142 312,186 245,168 225,205 206,144 154,132", label: { x: 282, y: 116, size: 26 } },
-  { name: "Koinadugu",          points: "414,18 520,10 542,80 616,82 612,178 548,190 520,256 458,220 434,142 414,135",        label: { x: 492, y: 112, size: 24 } },
-  { name: "Falaba",             points: "542,10 710,10 736,76 716,176 674,240 612,230 612,178 616,82",                        label: { x: 654, y: 136, size: 28 } },
-  { name: "Bombali",            points: "245,168 312,186 350,142 434,142 458,220 426,296 350,312 292,270 222,288 188,238 225,205", label: { x: 342, y: 237, size: 26 } },
-  { name: "Port Loko",          points: "62,272 105,242 188,238 222,288 292,270 300,330 246,355 158,332 72,356 18,326",       label: { x: 142, y: 314, size: 22 } },
-  { name: "Western Area Urban", points: "18,340 54,324 72,356 48,386 18,374",                                                label: { x: 28, y: 360, size: 9,  lines: ["W.Urban"] } },
-  { name: "Western Area Rural", points: "20,376 48,386 72,356 122,366 108,432 44,438",                                       label: { x: 66, y: 404, size: 12, lines: ["W.Rural"] } },
-  { name: "Tonkolili",          points: "300,330 292,270 350,312 426,296 470,330 466,405 390,430 306,390 246,355",            label: { x: 385, y: 356, size: 30 } },
-  { name: "Kono",               points: "520,256 548,190 612,230 674,240 730,286 712,360 646,396 560,380 502,328",            label: { x: 622, y: 318, size: 38 } },
-  { name: "Moyamba",            points: "108,432 122,366 246,355 306,390 338,458 270,508 130,500 56,476",                    label: { x: 200, y: 456, size: 28 } },
-  { name: "Bo",                 points: "338,458 306,390 390,430 466,405 500,462 470,548 350,548 270,508",                   label: { x: 410, y: 494, size: 38 } },
-  { name: "Kenema",             points: "500,462 466,405 502,328 560,380 646,396 640,518 570,578 470,548",                   label: { x: 542, y: 505, size: 22 } },
-  { name: "Kailahun",           points: "646,396 712,360 738,410 710,530 640,518",                                           label: { x: 674, y: 462, size: 22 } },
-  { name: "Bonthe",             points: "56,476 130,500 270,508 350,548 326,604 178,580 70,535",                             label: { x: 246, y: 546, size: 26 } },
-  { name: "Pujehun",            points: "350,548 470,548 570,578 510,612 374,612 326,604",                                   label: { x: 442, y: 590, size: 26 } },
-];
+// ── GeoJSON → SVG projection ─────────────────────────────────────────────────
+// Source: geoBoundaries SLE-ADM2 (commit 9469f09, gbHumanitarian = OCHA COD-AB source)
+//   + 2017 district splits for Karene / Falaba (OCHA COD-AB itself only carries 14 districts;
+//     Karene & Falaba are derived by Sutherland-Hodgman clipping of their parent polygons at
+//     the known administrative thresholds documented in sleDistricts.geo.json metadata)
+// Projection: Web Mercator (EPSG:3857) Y — ln(tan(π/4 + φ/2)) — normalised to 760×620 viewport
+const GEO_LON_MIN = -13.389, GEO_LON_MAX = -10.191;
+const GEO_LAT_MIN =  6.843,  GEO_LAT_MAX = 10.079;
+// Pre-compute Mercator northings for the bbox extremes (avoids per-vertex recomputation)
+const MERC_MAX = Math.log(Math.tan(Math.PI / 4 + (GEO_LAT_MAX * Math.PI) / 360));
+const MERC_MIN = Math.log(Math.tan(Math.PI / 4 + (GEO_LAT_MIN * Math.PI) / 360));
+
+function geoToSvg(lon: number, lat: number): [number, number] {
+  const x = Math.round(((lon - GEO_LON_MIN) / (GEO_LON_MAX - GEO_LON_MIN)) * MAP_W);
+  const mercY = Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360));
+  const y = Math.round(((MERC_MAX - mercY) / (MERC_MAX - MERC_MIN)) * MAP_H);
+  return [x, y];
+}
+
+function ringToPoints(ring: number[][]): string {
+  return ring
+    .slice(0, -1) // remove closing vertex (SVG polygon closes automatically)
+    .map(([lon, lat]) => geoToSvg(lon, lat).join(","))
+    .join(" ");
+}
+
+function getLargestRing(geometry: { type: string; coordinates: number[][][][] | number[][][] }): number[][] {
+  if (geometry.type === "Polygon") {
+    return (geometry as { type: string; coordinates: number[][][] }).coordinates[0];
+  }
+  // MultiPolygon – use the largest outer ring
+  const mp = (geometry as { type: string; coordinates: number[][][][] }).coordinates;
+  return mp.reduce((best: number[][], poly: number[][][]) =>
+    poly[0].length > best.length ? poly[0] : best, [] as number[][]);
+}
+
+/**
+ * Area-weighted geometric centroid of a GeoJSON ring in SVG space.
+ * Uses the standard shoelace formula  cx = (1/6A)·Σ(x_i+x_{i+1})·cross_i
+ * which is exact for simple polygons and guaranteed to lie inside convex
+ * shapes. For concave/tiny districts we fall back on the vertex average
+ * if the computed area is near-zero (degenerate ring guard).
+ */
+function svgCentroid(ring: number[][]): [number, number] {
+  const pts = ring.slice(0, -1).map(([lon, lat]) => geoToSvg(lon, lat));
+  let area = 0, cx = 0, cy = 0;
+  for (let i = 0, n = pts.length; i < n; i++) {
+    const [x0, y0] = pts[i];
+    const [x1, y1] = pts[(i + 1) % n];
+    const cross = x0 * y1 - x1 * y0;
+    area  += cross;
+    cx    += (x0 + x1) * cross;
+    cy    += (y0 + y1) * cross;
+  }
+  area /= 2;
+  if (Math.abs(area) < 1e-6) {
+    // degenerate: fall back to vertex average
+    const sx = Math.round(pts.reduce((s, [x]) => s + x, 0) / pts.length);
+    const sy = Math.round(pts.reduce((s, [, y]) => s + y, 0) / pts.length);
+    return [sx, sy];
+  }
+  return [Math.round(cx / (6 * area)), Math.round(cy / (6 * area))];
+}
+
+// Per-district label overrides (size, display text, and/or pinned SVG anchor).
+// x/y pins are used for districts whose polygon centroid may fall outside the
+// shape (tiny or highly concave polygons). Values computed from GeoJSON centroid
+// and verified against rendered output.
+const LABEL_OVERRIDES: Record<string, Partial<DistrictMapShape["label"]>> = {
+  // Western Area districts are tiny coastal polygons; centroid is pinned to a
+  // known interior point so the label always sits inside the shape.
+  "Western Area Urban": { x: 42, y: 312, size: 8,  lines: ["W.Urban"] },
+  "Western Area Rural": { x: 69, y: 336, size: 9,  lines: ["W.Rural"] },
+  "Kambia":    { size: 15 },
+  "Port Loko": { size: 15 },
+  "Karene":    { size: 15 },
+  "Koinadugu": { size: 15 },
+  "Falaba":    { size: 15 },
+  "Bombali":   { size: 17 },
+  "Tonkolili": { size: 17 },
+  "Moyamba":   { size: 17 },
+  "Kenema":    { size: 17 },
+  "Kailahun":  { size: 17 },
+  "Pujehun":   { size: 17 },
+  "Bonthe":    { size: 15 },
+  "Kono":      { size: 19 },
+  "Bo":        { size: 21 },
+};
+
+// Build DISTRICT_MAP_SHAPES at module load time from the GeoJSON file
+const DISTRICT_MAP_SHAPES: DistrictMapShape[] = (
+  sleGeoJson as { features: { properties: { shapeName: string }; geometry: never }[] }
+).features.map((feature) => {
+  const name = feature.properties.shapeName;
+  const ring = getLargestRing(feature.geometry);
+  const points = ringToPoints(ring);
+  const [cx, cy] = svgCentroid(ring);
+  const overrides = LABEL_OVERRIDES[name] ?? { size: 17 };
+  return { name, points, label: { x: cx, y: cy, ...overrides } };
+});
 
 type GISLayer = "yield" | "infra" | "climate";
 
