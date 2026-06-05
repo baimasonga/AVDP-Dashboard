@@ -57,6 +57,11 @@ The recommended hosting is **Cloudflare Pages** for the static frontend plus a
 3. Add environment variables: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`.
 4. SPA routing is handled by `public/_redirects` (`/* /index.html 200`).
 
+Alternatively, deploy via the included GitHub Actions workflow
+(`.github/workflows/deploy.yml`), which builds and pushes to Cloudflare Pages on
+every merge to `main`. It needs these repository secrets: `CLOUDFLARE_API_TOKEN`,
+`CLOUDFLARE_ACCOUNT_ID`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`.
+
 **AI advisor → Supabase Edge Function** (`supabase/functions/advisor`)
 - Deploy: `supabase functions deploy advisor` (already deployed in this project).
 - Set the key as a function secret to enable live Gemini:
