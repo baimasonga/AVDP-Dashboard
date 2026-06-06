@@ -237,4 +237,49 @@ export const AVDP_REPORT = {
     { category: "Market Access & Value Chain", challenges: ["Limited reliable buyers", "Price volatility & middlemen", "Weak value-addition facilities"], recommendations: ["Link farmers to off-takers via contract farming", "Incentivise private processing", "Create MSP dialogue platforms"] },
     { category: "Sustainability & Exit", challenges: ["Over-reliance on subsidies", "Weak private sector continuity", "Limited local institutional ownership"], recommendations: ["Build VSLA & cooperative governance", "Align with national agri policy & budgets", "Transfer capacity to MAFS & districts"] },
   ],
+
+  // Financial performance (FY2025 actuals, FY2026 budget/expenditure, disbursement as at 31 May 2026)
+  financials: {
+    asOf: "31 May 2026",
+    disbursement: {
+      grandTotal: { cost: 83429641.29, disbursed: 67062468.70, pending: 1631879.12, pct: 80.38, balance: 16367172.59 },
+      bySource: [
+        { source: "IFAD (Loans & Grants)", cost: 52630000.0, disbursed: 46616188.30, pct: 88.57, balance: 6013811.70 },
+        { source: "Adaptation Fund", cost: 9140023.0, disbursed: 8522033.14, pct: 93.24, balance: 617989.86 },
+        { source: "OFID (OPEC Fund)", cost: 15000000.0, disbursed: 8887412.82, pct: 59.25, balance: 6112587.18 },
+        { source: "Govt of Sierra Leone", cost: 1900000.0, disbursed: 988992.98, pct: 52.05, balance: 911007.02 },
+        { source: "Beneficiaries (in-kind)", cost: 2698140.99, disbursed: 2047841.46, pct: 75.90, balance: 650299.53 },
+        { source: "Private Sector (in-kind)", cost: 2061477.31, disbursed: 0, pct: 0.0, balance: 2061477.31 },
+      ],
+    },
+    fy2025: {
+      exec: 86.85, budget: 22095545.80, expenditure: 19190435.48,
+      byFinancier: [
+        { name: "IFAD Loan/Grant (Cycle I)", budget: 584028.84, expenditure: 419785.57, exec: 71.88 },
+        { name: "IFAD Add'l Loan/Grant (Cycle II)", budget: 7337656.89, expenditure: 7609077.20, exec: 103.70 },
+        { name: "IFAD Add'l Loan/Grant (Cycle III)", budget: 5323219.33, expenditure: 4103788.46, exec: 77.09 },
+        { name: "Adaptation Fund", budget: 3128431.30, expenditure: 2750701.03, exec: 87.93 },
+        { name: "Beneficiaries", budget: 1102341.46, expenditure: 1102341.46, exec: 100.0 },
+        { name: "OFID (OPEC)", budget: 4236179.89, expenditure: 3185073.03, exec: 75.19 },
+        { name: "Private Sector", budget: 76100.46, expenditure: 0, exec: 0.0 },
+        { name: "Govt of Sierra Leone", budget: 307587.63, expenditure: 19668.73, exec: 6.39 },
+      ],
+    },
+    fy2026: {
+      janMay: { exec: 52.72, budget: 10906604.32, expenditure: 5749835.46 },
+      yearEnd: { exec: 26.62, budget: 21600039.52 },
+      byComponent: [
+        { name: "C1 · Climate-Resilient & Smart Production", jmBudget: 4144807.79, jmExp: 1551155.33, jmExec: 37.42, yeBudget: 8102532.81, yeExec: 19.14 },
+        { name: "C2 · Agricultural Market Development", jmBudget: 5756570.81, jmExp: 3642435.72, jmExec: 63.27, yeBudget: 11300940.98, yeExec: 32.23 },
+        { name: "C3 · Project Coordination & Management", jmBudget: 1005225.72, jmExp: 556244.41, jmExec: 55.34, yeBudget: 2196565.73, yeExec: 25.32 },
+      ],
+      byCategory: [
+        { name: "Civil Works", jmBudget: 5547370.70, jmExp: 3007050.33, jmExec: 54.21, yeBudget: 10817220.92, yeExec: 27.80 },
+        { name: "Consultancies (incl. TA)", jmBudget: 2908062.40, jmExp: 2078278.56, jmExec: 71.47, yeBudget: 7005129.41, yeExec: 29.67 },
+        { name: "Recurrent (salaries, allowances, op.)", jmBudget: 850544.58, jmExp: 473848.76, jmExec: 55.71, yeBudget: 1897695.27, yeExec: 24.97 },
+        { name: "Grants & Subsidies", jmBudget: 1585626.64, jmExp: 190062.02, jmExec: 11.99, yeBudget: 1864993.92, yeExec: 10.19 },
+        { name: "Goods, Equipment & Vehicles", jmBudget: 15000.0, jmExp: 595.79, jmExec: 3.97, yeBudget: 15000.0, yeExec: 3.97 },
+      ],
+    },
+  },
 };

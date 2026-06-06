@@ -21,6 +21,7 @@ import ImplementationTab from "./components/ImplementationTab";
 import ProductionTab from "./components/ProductionTab";
 import OutcomesTab from "./components/OutcomesTab";
 import LogframeStrip from "./components/LogframeStrip";
+import FinanceTab from "./components/FinanceTab";
 import {
   Building2, Globe, Shield, RefreshCw, Radio, HardDrive,
   Wifi, WifiOff, FileSpreadsheet, Layers, Bell, Bot, History,
@@ -87,8 +88,8 @@ export default function App() {
   // Initialize tab + district from the URL so views are shareable/deep-linkable
   const initialParams = new URLSearchParams(window.location.search);
   const initialTab = initialParams.get("tab");
-  const [activeTab, setActiveTab] = useState<"analytics" | "implementation" | "production" | "outcomes" | "gis" | "markets" | "calendar" | "settings">(
-    ["implementation", "production", "outcomes", "gis", "markets", "calendar", "settings"].includes(initialTab || "") ? (initialTab as any) : "analytics"
+  const [activeTab, setActiveTab] = useState<"analytics" | "implementation" | "production" | "outcomes" | "finance" | "gis" | "markets" | "calendar" | "settings">(
+    ["implementation", "production", "outcomes", "finance", "gis", "markets", "calendar", "settings"].includes(initialTab || "") ? (initialTab as any) : "analytics"
   );
 
   // --- COMPREHENSIVE DATA SYNCHRONIZATION INTERFACE ---
@@ -437,7 +438,18 @@ export default function App() {
                 : "border-transparent text-slate-400 hover:text-slate-200"
             }`}
           >
-            🌍 Outcomes &amp; Finance
+            🌍 Outcomes
+          </button>
+
+          <button
+            onClick={() => setActiveTab("finance")}
+            className={`text-xs uppercase font-mono tracking-wider font-bold pb-3 px-4 border-b-2 transition-all cursor-pointer ${
+              activeTab === "finance"
+                ? "border-emerald-500 text-emerald-400 font-semibold"
+                : "border-transparent text-slate-400 hover:text-slate-200"
+            }`}
+          >
+            💰 Finance
           </button>
 
           <button
@@ -595,6 +607,7 @@ export default function App() {
         {activeTab === "implementation" && <ImplementationTab />}
         {activeTab === "production" && <ProductionTab />}
         {activeTab === "outcomes" && <OutcomesTab />}
+        {activeTab === "finance" && <FinanceTab />}
 
         {activeTab === "markets" && (
           <>
