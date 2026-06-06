@@ -36,5 +36,18 @@
       font-size: 10px !important;
     }
   }
+
+  /* Dedicated printable report (rendered as a body-level portal) */
+  @media print {
+    .no-print { display: none !important; }
+    body.printing-report #root { display: none !important; }
+    body.printing-report #print-report-root {
+      display: block !important;
+      position: static !important;
+      background: white !important;
+    }
+    .report-section { break-inside: avoid; }
+    @page { margin: 14mm; }
+  }
 }
 

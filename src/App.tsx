@@ -22,10 +22,11 @@ import ProductionTab from "./components/ProductionTab";
 import OutcomesTab from "./components/OutcomesTab";
 import LogframeStrip from "./components/LogframeStrip";
 import FinanceTab from "./components/FinanceTab";
+import ReportDocument from "./components/ReportDocument";
 import {
   Building2, Globe, Shield, RefreshCw, Radio, HardDrive,
   Wifi, WifiOff, FileSpreadsheet, Layers, Bell, Bot, History,
-  Info, TrendingUp, Sparkles, Sliders, LogIn, ChevronRight, AlertTriangle
+  Info, TrendingUp, Sparkles, Sliders, LogIn, ChevronRight, AlertTriangle, FileText
 } from "lucide-react";
 
 export default function App() {
@@ -42,6 +43,7 @@ export default function App() {
 
   // Bandwidth & Readability Configurations
   const [isLowBandwidth, setIsLowBandwidth] = useState<boolean>(false);
+  const [showReport, setShowReport] = useState<boolean>(false);
   const [isDarkMode, setIsDarkMode] = useState<boolean>(true); // default to true as per request
 
   // Synchronization status tracking
@@ -384,6 +386,16 @@ export default function App() {
             </div>
           </div>
 
+          {/* Generate report (print / PDF) */}
+          <button
+            onClick={() => setShowReport(true)}
+            className="flex items-center gap-2 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-medium px-3 py-2 rounded-lg transition-all cursor-pointer"
+            title="Generate a printable supervision report (PDF)"
+          >
+            <FileText className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Generate Report</span>
+          </button>
+
           {/* Secure Admin Gate modal toggles */}
           <AuthModal
             currentUser={currentUser}
@@ -391,6 +403,8 @@ export default function App() {
           />
         </div>
       </header>
+
+      <ReportDocument open={showReport} onClose={() => setShowReport(false)} />
 
       {/* Main Container Layout */}
       <main className="max-w-7xl mx-auto p-6 space-y-6">
