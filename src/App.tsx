@@ -19,6 +19,7 @@ import ReportsPanel from "./components/ReportsPanel";
 import GisWorkspace from "./components/GisWorkspace";
 import ImplementationTab from "./components/ImplementationTab";
 import ProductionTab from "./components/ProductionTab";
+import ValueChainPillars from "./components/ValueChainPillars";
 import OutcomesTab from "./components/OutcomesTab";
 import LogframeStrip from "./components/LogframeStrip";
 import FinanceTab from "./components/FinanceTab";
@@ -89,9 +90,10 @@ export default function App() {
 
   // Initialize tab + district from the URL so views are shareable/deep-linkable
   const initialParams = new URLSearchParams(window.location.search);
-  const initialTab = initialParams.get("tab");
-  const [activeTab, setActiveTab] = useState<"analytics" | "implementation" | "production" | "outcomes" | "finance" | "gis" | "markets" | "calendar" | "settings">(
-    ["implementation", "production", "outcomes", "finance", "gis", "markets", "calendar", "settings"].includes(initialTab || "") ? (initialTab as any) : "analytics"
+  // Production & Sales has been merged into the Market Value Chains tab — redirect legacy links.
+  const initialTab = initialParams.get("tab") === "production" ? "markets" : initialParams.get("tab");
+  const [activeTab, setActiveTab] = useState<"analytics" | "implementation" | "outcomes" | "finance" | "gis" | "markets" | "calendar" | "settings">(
+    ["implementation", "outcomes", "finance", "gis", "markets", "calendar", "settings"].includes(initialTab || "") ? (initialTab as any) : "analytics"
   );
 
   // --- COMPREHENSIVE DATA SYNCHRONIZATION INTERFACE ---
@@ -434,17 +436,6 @@ export default function App() {
           </button>
 
           <button
-            onClick={() => setActiveTab("production")}
-            className={`text-xs uppercase font-mono tracking-wider font-bold pb-3 px-4 border-b-2 transition-all cursor-pointer ${
-              activeTab === "production"
-                ? "border-emerald-500 text-emerald-400 font-semibold"
-                : "border-transparent text-slate-400 hover:text-slate-200"
-            }`}
-          >
-            📈 Production &amp; Sales
-          </button>
-
-          <button
             onClick={() => setActiveTab("outcomes")}
             className={`text-xs uppercase font-mono tracking-wider font-bold pb-3 px-4 border-b-2 transition-all cursor-pointer ${
               activeTab === "outcomes"
@@ -488,7 +479,7 @@ export default function App() {
                 : "border-transparent text-slate-400 hover:text-slate-200"
             }`}
           >
-            🌾 Market Value Chains
+            🌾 Production &amp; Value Chains
             <span className="text-[9px] bg-teal-950 border border-teal-500/25 text-teal-400 px-1.5 py-0.5 rounded uppercase font-bold tracking-normal leading-none animate-pulse">
               New
             </span>
@@ -619,12 +610,17 @@ export default function App() {
         )}
 
         {activeTab === "implementation" && <ImplementationTab />}
-        {activeTab === "production" && <ProductionTab />}
         {activeTab === "outcomes" && <OutcomesTab />}
         {activeTab === "finance" && <FinanceTab />}
 
         {activeTab === "markets" && (
           <>
+            {/* Value chain enablers: market access, finance, roads & business centres */}
+            <ValueChainPillars />
+
+            {/* Value chain success: production & sales volumes + yield studies */}
+            <ProductionTab />
+
             <MarketInformation
               indicators={indicators}
               selectedDistrict={selectedDistrict}
